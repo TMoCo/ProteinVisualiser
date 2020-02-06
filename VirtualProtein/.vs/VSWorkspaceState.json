@@ -2,9 +2,11 @@
   "ExpandedNodes": [
     "",
     "\\Assets",
-    "\\Assets\\SteamVR",
-    "\\UnityPackageManager"
+    "\\Assets\\Scripts",
+    "\\Assets\\Scripts\\FileBrowser",
+    "\\Assets\\Scripts\\ModelStructures",
+    "\\Assets\\Scripts\\SceneManagement"
   ],
-  "SelectedNode": "\\UnityPackageManager\\manifest.json",
+  "SelectedNode": "\\Assets\\Scripts\\FileBrowser\\StructureFileBrowser.cs",
   "PreviewInSolutionExplorer": false
 }

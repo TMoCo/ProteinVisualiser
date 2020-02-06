@@ -13,12 +13,14 @@
     <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
-    <CompilerResponseFile></CompilerResponseFile>
+    <CompilerResponseFile>
+    </CompilerResponseFile>
     <UnityProjectGenerator>VSTU</UnityProjectGenerator>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows64:19</UnityBuildTarget>
     <UnityVersion>2017.2.0f3</UnityVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <LangVersion>4</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -223,6 +225,19 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="VirtualProtein.Plugins.csproj">
+      <Project>{5EC61529-FAD6-85FB-9EB8-4D14DBFF14D7}</Project>
+      <Name>VirtualProtein.Plugins</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Assets\Scripts\FileManagement\FileParser.cs" />
+    <Compile Include="Assets\Scripts\FileManagement\StructureFileBrowser.cs" />
+    <Compile Include="Assets\Scripts\ModelStructures\Structures.cs" />
+    <Compile Include="Assets\Scripts\Representation\Model.cs" />
+    <Compile Include="Assets\Scripts\SceneManagement\ChangeScene.cs" />
+    <Compile Include="Assets\Scripts\SceneManagement\StopVR.cs" />
+    <Compile Include="Assets\Scripts\SceneManagement\ToVR.cs" />
     <Compile Include="Assets\SteamVR\Extras\SteamVR_ForceSteamVRMode.cs" />
     <Compile Include="Assets\SteamVR\Extras\SteamVR_GazeTracker.cs" />
     <Compile Include="Assets\SteamVR\Extras\SteamVR_LaserPointer.cs" />
@@ -403,6 +418,7 @@
     <Compile Include="Assets\SteamVR\WindowsHelper\SteamVR_Windows_Editor_Helper.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Assets\Plugins\SimpleFileBrowser\README.txt" />
     <None Include="Assets\SteamVR\InteractionSystem\Core\Shaders\SeeThru.shader" />
     <None Include="Assets\SteamVR\InteractionSystem\Core\Shaders\Silhouette.shader" />
     <None Include="Assets\SteamVR\InteractionSystem\Hints\Shaders\ControllerButtonHints.shader" />

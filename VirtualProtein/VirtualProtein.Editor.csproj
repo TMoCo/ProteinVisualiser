@@ -271,6 +271,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="VirtualProtein.Plugins.csproj">
+      <Project>{5EC61529-FAD6-85FB-9EB8-4D14DBFF14D7}</Project>
+      <Name>VirtualProtein.Plugins</Name>
+    </ProjectReference>
     <ProjectReference Include="VirtualProtein.csproj">
       <Project>{3F164965-BD2F-92EF-5DD6-F362266289A1}</Project>
       <Name>VirtualProtein</Name>
@@ -306,6 +310,7 @@
     <Compile Include="Assets\SteamVR\Input\Editor\SteamVR_Skeleton_PoserEditor.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Assets\Plugins\SimpleFileBrowser\README.txt" />
     <None Include="Assets\SteamVR\InteractionSystem\Core\Shaders\SeeThru.shader" />
     <None Include="Assets\SteamVR\InteractionSystem\Core\Shaders\Silhouette.shader" />
     <None Include="Assets\SteamVR\InteractionSystem\Hints\Shaders\ControllerButtonHints.shader" />
