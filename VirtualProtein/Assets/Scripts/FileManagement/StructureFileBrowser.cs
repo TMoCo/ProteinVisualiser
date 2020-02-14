@@ -26,7 +26,6 @@ public class StructureFileBrowser : MonoBehaviour {
     // Dialog is closed
     // Print whether a file is chosen (FileBrowser.Success)
     // and the path to the selected file (FileBrowser.Result) (null, if FileBrowser.Success is false)
-         Debug.Log(FileBrowser.Success + " " + FileBrowser.Result);
          string fileName = FileBrowserHelpers.GetFilename(FileBrowser.Result);
 
          if (FileBrowser.Success && fileName.EndsWith(".pdb"))

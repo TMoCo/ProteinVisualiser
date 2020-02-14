@@ -3,10 +3,11 @@
     "",
     "\\Assets",
     "\\Assets\\Scripts",
-    "\\Assets\\Scripts\\FileBrowser",
+    "\\Assets\\Scripts\\FileManagement",
     "\\Assets\\Scripts\\ModelStructures",
+    "\\Assets\\Scripts\\Representation",
     "\\Assets\\Scripts\\SceneManagement"
   ],
-  "SelectedNode": "\\Assets\\Scripts\\FileBrowser\\StructureFileBrowser.cs",
+  "SelectedNode": "\\Assets\\Scripts\\FileManagement\\FileParser.cs",
   "PreviewInSolutionExplorer": false
 }
