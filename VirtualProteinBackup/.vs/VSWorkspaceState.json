@@ -1,0 +1,13 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\Assets",
+    "\\Assets\\Scripts",
+    "\\Assets\\Scripts\\FileManagement",
+    "\\Assets\\Scripts\\ModelStructures",
+    "\\Assets\\Scripts\\Representation",
+    "\\Assets\\Scripts\\SceneManagement"
+  ],
+  "SelectedNode": "\\Assets\\Scripts\\FileManagement\\FileParser.cs",
+  "PreviewInSolutionExplorer": false
+}
