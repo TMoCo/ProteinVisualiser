@@ -6,12 +6,14 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-// idea is to create structure classes that build into each other
 //
-//  |----> Model
-//  |-------> Structures
-//  |-----------> Residues
-//  |---------------> Atom
+// The idea is to create structure classes that build into each other
+//
+//  |----> Model (one or more chains)
+//  |---------> chain (one or more secondary structures)
+//  |--------------> Structure (one or more residues)
+//  |-------------------> Residue (various nb of atoms for each amino acid)
+//  |------------------------> Atom
 //
 //
 namespace Structures
@@ -28,7 +30,8 @@ namespace Structures
         VanDerWalls,
         Tube,
         BallAndStick,
-        WireFrame
+        WireFrame,
+        Cartoon
     };
 
     public enum ColourScheme
@@ -118,8 +121,7 @@ namespace Structures
             };
         }
     }
-
-    
+  
     public class VDWRadii
     {
         /*
@@ -190,6 +192,27 @@ namespace Structures
         }
     }
 
+    public class Chain
+    {
+        public List<Residue> chainResidues = new List<Residue>();
+        public string ChainId { get; set; }
+
+        public Chain()
+        {
+
+        }
+
+        public Chain(List<Residue> residues)
+        {
+            chainResidues = residues;
+        }
+
+        public void AddResidue(Residue residue)
+        {
+            chainResidues.Add(residue);
+        }
+    }
+
 
     // Each residue contains a certain number of atoms...
     // They are linked together via a peptide bond, the bonding of one's carboxyl with another's amino group
@@ -197,6 +220,7 @@ namespace Structures
     public class Residue
     {
         public List<Atom> resAtoms = new List<Atom>();
+        public List<GameObject> residueGameObjects = new List<GameObject>();
 
         public int AtomCount { get; set; }
         public int ResidueSeq { get; set; }
@@ -210,6 +234,8 @@ namespace Structures
             ResidueSeq = resSeq;
             ResidueName = name;
             ChainId = chainId;
+            // initialise structure information to default Other (rendered as tube for cartoon)
+            ResStructureInf = SecondaryStructure.Other;
         }
 
         public Residue(List<Atom> i_atoms)
@@ -262,6 +288,11 @@ namespace Structures
             {
                 atom.IsDisplayed = true;
             }
+        }
+
+        public string ResidueToString()
+        {
+            return ResidueSeq.ToString() + " " +  ResidueName ;
         }
     }
 
@@ -331,36 +362,30 @@ namespace Structures
     {
         // fields
 
-        // atom related
-        public List<Atom> atoms;
-        public List<GameObject> atomObjects;
-
+        // the indices of the residues selected in representation
+       public List<List<int>> residueIndices;
+ 
         // representation parameters
         public RepresentationType repType;
-        public ColourScheme scheme;
 
         // representation variables
         public bool IsDisplayed { get; set; }
 
         // constructor
-        public Representation(List<Atom> n_atoms, RepresentationType n_rep, ColourScheme n_scheme, bool display)
+        public Representation(List<List<int>> indices, RepresentationType n_rep, bool display)
         {
             // to display new representation upon creation
-            atoms = n_atoms;
+            residueIndices = indices;
             repType = n_rep;
-            scheme = n_scheme;
             IsDisplayed = display;
-            atomObjects = new List<GameObject>();
         }
         
         // default to wireframe (like VMD) if no parameters provided
-        public Representation(List<Atom> n_atoms)
+        public Representation(List<List<int>> indices)
         {
-            atoms = n_atoms;
-            repType = RepresentationType.WireFrame;
-            scheme = ColourScheme.ByAtomType;
+            residueIndices = indices;
+            repType = RepresentationType.VanDerWalls;
             IsDisplayed = true;
-            atomObjects = new List<GameObject>();
         }
 
         // methods
@@ -368,7 +393,7 @@ namespace Structures
         // create custom tostring method that shows the rep type and colour scheme
         public override string ToString()
         {
-            string repAsString = repType + " | " + scheme;
+            string repAsString = repType.ToString();
             return repAsString;
         }
     }

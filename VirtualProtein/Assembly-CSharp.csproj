@@ -62,16 +62,19 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\DSSPFileBrowser.cs" />
+    <Compile Include="Assets\Scripts\FileManagement\DSSPFileBrowser.cs" />
     <Compile Include="Assets\Scripts\FileManagement\FileParser.cs" />
     <Compile Include="Assets\Scripts\FileManagement\StructureFileBrowser.cs" />
     <Compile Include="Assets\Scripts\ModelStructures\BezierCurves.cs" />
     <Compile Include="Assets\Scripts\ModelStructures\Structures.cs" />
     <Compile Include="Assets\Scripts\Representation\Model.cs" />
+    <Compile Include="Assets\Scripts\UI\ChainsDropdown.cs" />
     <Compile Include="Assets\Scripts\UI\ColouringDropdown.cs" />
     <Compile Include="Assets\Scripts\UI\ModelInfo.cs" />
     <Compile Include="Assets\Scripts\UI\RepCreateDropdown.cs" />
     <Compile Include="Assets\Scripts\UI\RepresentationsDropdown.cs" />
+    <Compile Include="Assets\Scripts\UI\ResiduesDropdown.cs" />
+    <Compile Include="Assets\Scripts\UI\SelectionHandler.cs" />
     <Reference Include="Unity.Timeline.Editor">
       <HintPath>C:/Users/Tommy/Documents/Unity/virtualprotein/VirtualProtein/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
     </Reference>

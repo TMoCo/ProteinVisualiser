@@ -50,8 +50,12 @@ public class Model : MonoBehaviour
 
     // Fields containing lists of the atom objects and the representations used for the model
     public List<Atom> atoms;
+
     public List<List<Atom>> chains;
     public List<Atom> backbone;
+
+    public List<Chain> modelChains;
+
     public List<Representation> representations = new List<Representation>();
 
     public int AtomCount { get; set; }
@@ -81,7 +85,6 @@ public class Model : MonoBehaviour
 
     }
 
-
     //                   //
     //      UPDATE       //
     //                   //
@@ -106,19 +109,40 @@ public class Model : MonoBehaviour
 
                 // Let UI know it can display data
                 UI.GetComponent<ModelInfo>().fileLoaded = true;
+                UI.GetComponent<ChainsDropdown>().InitDropdown();
+                UI.GetComponent<ResiduesDropdown>().InitDropdown();
+                UI.GetComponent<SelectionHandler>().hasNewModel = true;
                     
                 // intitialse representations
                 representations.Clear();
                 UI.GetComponent<RepresentationsDropdown>().repDropdown.options.Clear();
 
                 GetComponent<SphereCollider>().radius = GetModelSize()/2;
-                
-                // default for first initialisation              
-                foreach (List<Atom> chain in chains)
+
+                ChainToList();
+
+                // default for first initialisation      
+                List<int> test = new List<int>();
+                for (int i = 0; i < 76; i++)
                 {
-                    RenderTube(chain);
+                        test.Add(i); 
+
                 }
 
+                Debug.Log("selected residues " + test.Count);
+
+                foreach(Chain chain in modelChains)
+                {
+                    foreach(Residue residue in chain.chainResidues)
+                    {
+                        foreach(Atom atom in residue.resAtoms)
+                        {
+                            atom.IsBackbone = false;
+                        }
+                    }
+                    FileParser.FindBackbone(chain);
+                    DrawVDW(chain, test);
+                }
                 newModel = false;
             }
 
@@ -126,9 +150,7 @@ public class Model : MonoBehaviour
             if (newRep == true)
             {
                 //signal from dropdown received, means we take data selected and create a rep with it
-                RepCreateDropdown repCreateScript = UI.GetComponent<RepCreateDropdown>();
-                AddNewRep((RepresentationType)repCreateScript.SelectedRepType, (ColourScheme)repCreateScript.SelectedColourScheme);
-                
+                RepCreateDropdown repCreateScript = UI.GetComponent<RepCreateDropdown>();                
                 // update the select rep dropdown
                 UI.GetComponent<RepresentationsDropdown>().hasNewRep = true;
 
@@ -179,13 +201,24 @@ public class Model : MonoBehaviour
         }
     }
 
-
-
     //                                //
     //         USEFUL METHODS         //
     //                                //
 
+    // returns the chains as a long list of atoms
+    public List<Atom> ChainToList()
+    {
+        List<Atom> atomList = new List<Atom>();
+        foreach(Chain chain in modelChains)
+        {
+            foreach(Residue residue in chain.chainResidues)
+            {
+                atomList.AddRange(residue.resAtoms);
+            }
+        }
 
+        return atomList;
+    }
     
     // destroys all GameObjects in the scene relevant to the representation
     public void DestroyModelObjects()
@@ -208,13 +241,13 @@ public class Model : MonoBehaviour
         }
     }
 
-
     // adds all the atoms and their data to the Model fields from a PDB file
     public void GetPdbData(string path)
     {
-        Debug.Log(path);
         chains = parser.ParsePDB(path);
+        modelChains = parser.ParsePDBtoChain(path);
 
+        /* FOR DEBUG */
         // if for whatever reason the algorithm can't generate a backbone, notify the user and don't render tube and cartoon for that model
 
         foreach(List<Atom> chain in chains)
@@ -240,6 +273,7 @@ public class Model : MonoBehaviour
         //SetStructureInfo(list);
     }
 
+    // adds the secondary structure information to each residue
     private void GetDsspData(string path)
     {
         Debug.Log(path);
@@ -250,12 +284,9 @@ public class Model : MonoBehaviour
         }
     }
 
-
     // sets all the residues (atoms) of the model to their correct secondary structure
     private void SetStructureInfo(List<SecondaryStructure> infoList)
     {
-        Debug.Log(ResidueCount);
-        Debug.Log(infoList.Count);
         // info list should not be longer than the residue count 
         if (ResidueCount != infoList.Count)
         {
@@ -278,10 +309,7 @@ public class Model : MonoBehaviour
                 }
                 atomChainIndex = 0;
             }
-            
-            //
         }
-
     }
 
     // Get the distance between the atoms that are furthest appart
@@ -326,8 +354,6 @@ public class Model : MonoBehaviour
         transform.localScale = new Vector3(f / modelSize, f / modelSize, f / modelSize);
 
     }
-
-
 
     //                          //
     //          GETTERS         //
@@ -399,58 +425,34 @@ public class Model : MonoBehaviour
     //         REPRESENTATION METHODS         //
     //                                        //
 
-
-
     // iterate over the representations list and render them
     private void RenderRepresentations()
     {
-        foreach(Representation rep in representations)
+        foreach(Representation representation in representations)
         {
             // check if rep shoulf be displayed
-            if (rep.IsDisplayed)
+            if (representation.IsDisplayed)
             {
                 // first set the colour of the atoms depending on selection
-                switch (rep.scheme)
+                switch (representation.repType)
                 {
-                    case ColourScheme.ByAtomType:
-                        ColourByAtom(atoms);
-                        break;
-                    case ColourScheme.ByResidueType:
-                        ColourByAminoAcid(atoms);
-                        break;
-                    case ColourScheme.ByStructure:
-                        ColourByStructure(atoms);
-                        break;
-                }
-
-                // second 
-                switch (rep.repType)
-                {
-                    case RepresentationType.BallAndStick:
-                        RenderBallAndStick(rep.atoms);
+                    case RepresentationType.VanDerWalls:
                         break;
                     case RepresentationType.Tube:
-                        RenderTube(GetBackbone(rep.atoms));
-                        break;
-                    case RepresentationType.VanDerWalls:
-                        RenderVDW(rep.atoms);
                         break;
                     case RepresentationType.WireFrame:
-                        RenderWireFrame(rep.atoms);
+                        break;
+                    case RepresentationType.BallAndStick:
+                        break;
+                    case RepresentationType.Cartoon:
                         break;
                 }
             }
         }
     }
 
-    private void AddNewRep(RepresentationType type, ColourScheme colour)
-    {
-        representations.Add(new Representation(atoms, type, colour, false));
-    }
-
-
-
-    // Renders the given atoms as a BALL AND STICK representation
+    /*  OLD BALL AND STICK 
+    // Renders the atoms in a chain as a BALL AND STICK representation
     private void RenderBallAndStick(List<Atom> atoms)
     {
         float res = atoms[0].ResSeqNum;
@@ -548,8 +550,58 @@ public class Model : MonoBehaviour
             }
         }
     }
+        */
 
-    // Renders the given atoms as a VAN DER WALLS/CPK representation
+    // Renders the atoms in a chain as a BALL AND STICK representation
+    private void DrawBallAndStick(Chain chain, List<int> selectedResidues)
+    {
+        int currentRes = 0;
+        Vector3 modelCenter = this.GetCenterPointObject(this.transform.position);
+
+        foreach (Residue residue in chain.chainResidues)
+        {
+            foreach(Atom atom in residue.resAtoms)
+            {
+                if(selectedResidues.Contains(currentRes))
+                {
+                    GameObject n_atom = Instantiate(AtomSphere, atom.Position - modelCenter, Quaternion.identity);
+                    n_atom.transform.parent = this.transform;
+                    n_atom.GetComponent<Renderer>().material.color = atom.Colour;
+                    residue.residueGameObjects.Add(n_atom);
+
+                    foreach(Atom neighbour in atom.neighbours)
+                    {
+                        if (neighbour.AtomSerial > atom.AtomSerial)
+                        {
+                            Vector3 bond_center = (atom.Position + neighbour.Position) / (float)2.0;
+                            float distance = Vector3.Distance(atom.Position, neighbour.Position);
+
+                            GameObject bondP1 = Instantiate(AtomBond, (bond_center + atom.Position) / (float)2.0 - modelCenter, Quaternion.identity);
+                            GameObject bondP2 = Instantiate(AtomBond, (bond_center + neighbour.Position) / (float)2.0 - modelCenter, Quaternion.identity);
+                            // set parent transform
+                            bondP1.transform.parent = this.transform;
+                            bondP2.transform.parent = this.transform;
+                            // orient bond to look at closest atom
+                            bondP1.transform.LookAt(atom.Position - modelCenter, Vector3.up);
+                            bondP2.transform.LookAt(neighbour.Position - modelCenter, Vector3.up);
+                            // change the bond's colour to the same as the closest atom's
+                            bondP1.GetComponent<Renderer>().material.color = atom.Colour;
+                            bondP2.GetComponent<Renderer>().material.color = neighbour.Colour;
+                            // scale down the bonds to fit the specific inter-atom distance
+                            bondP1.transform.localScale = new Vector3(10, 10, distance * 25);
+                            bondP2.transform.localScale = new Vector3(10, 10, distance * 25);
+
+                            residue.residueGameObjects.Add(bondP1);
+                            residue.residueGameObjects.Add(bondP2);
+                        }
+                    }
+                }
+            }
+            currentRes += 1;
+        }
+    }
+
+    /* OLD VDW
     private void RenderVDW(List<Atom> atoms)
     {
         Vector3 center = this.GetCenterPointObject(this.transform.position);
@@ -565,8 +617,33 @@ public class Model : MonoBehaviour
             atomGameObjects.Add(n_atom);
         }
     }
+    */
 
-    // Renders the given atoms as a WIREFRAME representation
+    // Renders the given atoms as a VAN DER WALLS/CPK representation
+    private void DrawVDW(Chain chain, List<int> selectedResidues)
+    {
+        int currentRes = 0;
+        Vector3 modelCenter = this.GetCenterPointObject(this.transform.position);
+
+        foreach (Residue residue in chain.chainResidues)
+        {
+            foreach (Atom atom in residue.resAtoms)
+            {
+                if (selectedResidues.Contains(currentRes) && atom.IsBackbone)
+                {
+                    GameObject n_atom = Instantiate(AtomSphere, atom.Position - modelCenter, Quaternion.identity);
+
+                    n_atom.transform.parent = this.transform;
+                    n_atom.GetComponent<Renderer>().material.color = atom.Colour;
+                    n_atom.transform.localScale *= atom.VDWRadius;
+                    residue.residueGameObjects.Add(n_atom);
+                }
+            }
+            currentRes += 1;
+        }
+    }
+
+    /* OLD WIREFRAME
     private void RenderWireFrame(List<Atom> atoms)
     {
         Vector3 center = this.GetCenterPointObject(this.transform.position);
@@ -639,8 +716,59 @@ public class Model : MonoBehaviour
             }
         }
     }
+    */
 
-    // Render the given atoms as a TUBE representation
+    // Renders the given atoms as a WIREFRAME representation
+    private void DrawWireFrame(Chain chain, List<int> selectedResidues)
+    {
+        int currentRes = 0;
+        Vector3 modelCenter = this.GetCenterPointObject(this.transform.position);
+
+        foreach (Residue residue in chain.chainResidues)
+        {
+            foreach (Atom atom in residue.resAtoms)
+            {
+                if (selectedResidues.Contains(currentRes))
+                {
+                    GameObject n_atom = Instantiate(AtomSphere, atom.Position - modelCenter, Quaternion.identity);
+                    n_atom.transform.parent = this.transform;
+                    n_atom.transform.localScale = new Vector3(10f, 10f, 10f);
+                    n_atom.GetComponent<Renderer>().material.color = atom.Colour;
+                    residue.residueGameObjects.Add(n_atom);
+
+                    foreach (Atom neighbour in atom.neighbours)
+                    {
+                        if (neighbour.AtomSerial > atom.AtomSerial)
+                        {
+                            Vector3 bond_center = (atom.Position + neighbour.Position) / (float)2.0;
+                            float distance = Vector3.Distance(atom.Position, neighbour.Position);
+
+                            GameObject bondP1 = Instantiate(AtomBond, (bond_center + atom.Position) / (float)2.0 - modelCenter, Quaternion.identity);
+                            GameObject bondP2 = Instantiate(AtomBond, (bond_center + neighbour.Position) / (float)2.0 - modelCenter, Quaternion.identity);
+                            // set parent transform
+                            bondP1.transform.parent = this.transform;
+                            bondP2.transform.parent = this.transform;
+                            // orient bond to look at closest atom
+                            bondP1.transform.LookAt(atom.Position - modelCenter, Vector3.up);
+                            bondP2.transform.LookAt(neighbour.Position - modelCenter, Vector3.up);
+                            // change the bond's colour to the same as the closest atom's
+                            bondP1.GetComponent<Renderer>().material.color = atom.Colour;
+                            bondP2.GetComponent<Renderer>().material.color = neighbour.Colour;
+                            // scale down the bonds to fit the specific inter-atom distance
+                            bondP1.transform.localScale = new Vector3(10, 10, distance * 25);
+                            bondP2.transform.localScale = new Vector3(10, 10, distance * 25);
+
+                            residue.residueGameObjects.Add(bondP1);
+                            residue.residueGameObjects.Add(bondP2);
+                        }
+                    }
+                }
+            }
+            currentRes += 1;
+        }
+    }
+
+    /* OLD TUBE
     private void RenderTube(List<Atom> atoms)
     {
         if (!atoms.Any() || (hasBackbone == false))
@@ -709,9 +837,41 @@ public class Model : MonoBehaviour
             }
         }
     }
+     */
 
+    // Render the given atoms as a TUBE representation
+    private void DrawTube(Chain chain, List<int> selectedResidues)
+    {
+        Vector3 center = this.GetCenterPointObject(this.transform.position);
+        List<List<Vector3>> curves = GetCurves(chain);
 
-
+        Vector3 prevSegment = curves[0][0];
+        for (int i = 0; i < curves.Count; i++)
+        {
+            if (selectedResidues.Contains(i))
+            {
+                for(int j = 0; j < steps; j++)
+                {
+                    Vector3 segmentPosition;
+                    if (i == 0)
+                    {
+                        segmentPosition = Bezier.GetPointQuad(curves[0][0], curves[0][1], curves[0][2], j / (float)steps);
+                    }
+                    else
+                    {
+                        segmentPosition = Bezier.GetPointCube(curves[i - 1][2], curves[i - 1][2] + (curves[i - 1][2] - curves[i - 1][1]), curves[i][1], curves[i][2], j / (float)steps);
+                    }
+                    GameObject n_Tube = Instantiate(AtomBond, segmentPosition - center, Quaternion.identity);
+                    n_Tube.transform.parent = transform;
+                    n_Tube.transform.LookAt(prevSegment);
+                    n_Tube.transform.localScale = new Vector3(10f, 10f, 15f);
+                    prevSegment = n_Tube.transform.position;
+                    // NB There are as many curves as there are residues, so use i as the residue index!
+                    chain.chainResidues[i].residueGameObjects.Add(n_Tube);
+                }
+            }
+        }
+    }
 
     // Renders the given atoms as a CARTOON representation
     private void RenderCartoon(List<Atom> chain)
@@ -972,7 +1132,7 @@ public class Model : MonoBehaviour
                     if (curvesBeta.Count == 1)
                     {
                         break;
-                    }
+                   }
 
                     if (prevSeg.Equals(Vector3.zero))
                     {
@@ -1030,7 +1190,14 @@ public class Model : MonoBehaviour
         }
     }
 
+    private void DrawCartoon(Chain chain, List<int> selectedResidues)
+    {
+        Vector3 center = this.GetCenterPointObject(this.transform.position);
 
+        List<List<Vector3>> structureCurves;
+
+    }
+    
     // Utility function for the cartoon method, divides the list of atoms into curves
     private List<List<Vector3>> GetCurves(List<Atom> atoms)
     {
@@ -1067,72 +1234,30 @@ public class Model : MonoBehaviour
         return curves;
     }
 
-
-    // Colour by residue
-    private void ColourByAminoAcid(List<Atom> atoms)
+    // returns the backbone atoms of each residue, used as the influence points of each best fit curve for tube and cartoon
+    private List<List<Vector3>> GetCurves(Chain chain)
     {
-        AminoColours colours = new AminoColours();
+        List<List<Vector3>> curves = new List<List<Vector3>>();
 
-        foreach(Atom atom in atoms)
+        foreach (Residue residue in chain.chainResidues)
         {
-            try
+            List<Vector3> curve = new List<Vector3>();
+            foreach (Atom atom in residue.resAtoms)
             {
-                atom.Colour = colours.aminoColours[atom.ResName];
+                if (atom.IsBackbone)
+                {
+                    curve.Add(atom.Position);
+                }
             }
-            // unknown residue type (anything other than amino acids, so no DNA etc
-            catch (System.Exception)
+
+            if (curve.Any())
             {
-                atom.Colour = new Color(255, 192, 203);
-                break;
+                curves.Add(curve);
             }
         }
+        return curves;
     }
-
-
-
-    // Colour by atom element
-    private void ColourByAtom(List<Atom> atoms)
-    {
-        AtomColours colours = new AtomColours();
-
-        foreach(Atom atom in atoms)
-        {
-            Debug.Log("\"" + atom.Element + "\"");
-            atom.Colour = colours.atomColours[atom.Element];
-            break;
-        }
-    }
-
-
-
-    // coulour by secondary structure
-    private void ColourByStructure(List<Atom> atoms)
-    {
-        StructureColours colours = new StructureColours();
-
-        foreach(Atom atom in atoms)
-        {
-            if (atom.SecStructInf == SecondaryStructure.AlphaHelix)
-            {
-                atom.Colour = colours.structureColours[atom.SecStructInf];
-            }
-            else if (atom.SecStructInf == SecondaryStructure.BetaSheet)
-            {
-                atom.Colour = colours.structureColours[atom.SecStructInf];
-            }
-            else if (atom.IsBackbone) // keep backbone black like carbon
-            {
-                atom.Colour = Color.black;
-            }
-            else
-            {
-                atom.Colour = colours.structureColours[atom.SecStructInf];
-            }
-        }
-    }
-
-
-
+    
     //                                  //
     //      Methods for user input      //
     //                                  //

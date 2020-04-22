@@ -8,10 +8,14 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-public class FileParser : MonoBehaviour
+public class FileParser
 {
 
     public bool DSSPstatus;
+
+    // dictionary containing the VDw radius and colours of each element
+    readonly VDWRadii radii = new VDWRadii();
+    readonly AtomColours colours = new AtomColours();
 
     public FileParser()
     {
@@ -24,12 +28,10 @@ public class FileParser : MonoBehaviour
     {
         List<List<Atom>> chains = new List<List<Atom>>();
 
-        try
-        {
+        List<Chain> chainsList = new List<Chain>();
 
-            VDWRadii radii = new VDWRadii();
-            AtomColours colours = new AtomColours();
-            
+        try
+        {            
             using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read))
             {
                 using (StreamReader input = new StreamReader(file))
@@ -103,27 +105,125 @@ public class FileParser : MonoBehaviour
                         }
                     }
                 }
-            }
-
-            Debug.Log("Found "+chains.Count+ " chains");
-            int i = 0;
-            foreach(List<Atom> chain in chains)
-            {
-                Debug.Log("There are " + chain.Count + " atoms in chain " + i);
-                i++;
-            }
-
+            }        
             foreach(List<Atom> chain in chains)
             {
                 FindNeighbours(chain);
+                chainsList.Add(new Chain(GetChainResidues(chain)));
             }
-
             return chains;
                 
         }
         catch (System.IO.IOException e)
         {
             return chains;
+        }
+    }
+
+    public List<Chain> ParsePDBtoChain(string path)
+    {
+        List<List<Atom>> chains = new List<List<Atom>>();
+        List<Chain> chainsList = new List<Chain>();
+
+        try
+        {
+
+            VDWRadii radii = new VDWRadii();
+            AtomColours colours = new AtomColours();
+
+            using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read))
+            {
+                using (StreamReader input = new StreamReader(file))
+                {
+
+                    // Regular expression to catch either an ATOM or TER in the .pdb file format using capture groups to separate information
+
+                    Regex pdbRegex = new Regex(@"^ATOM\s+(?<atom_serial>\d+)\s+(?<atom_name>[\w\W]{0,4})\s+" +
+                        @"(?<residue_name>\w+)\s(?<chain_id>\w?)\s+(?<res_seq_nb>\d+)\s*" +
+                        @"(?<x_pos>\W?\d+.\d{3})\s*(?<y_pos>\W?\d+.\d{3})\s*(?<z_pos>\W?\d+.\d{3})\s*" +
+                        @"(?<occupancy>\d.\d{2})\s*(?<temp_factor>\d+.\d{2})[\s\S\w\W]{0,10}(?<element>[\w\s]{0,2})\s*" +
+                        @"|^(?<ter_entry>TER)\s*(?<ter_serial>\d+)\s*(?<ter_res>\w+)\s*(?<ter_chain>\w+)\s*(?<ter_res_seq_num>\d+)");
+
+                    int chainIndex = -1;
+                    bool newChain = true;
+
+                    while (!input.EndOfStream)
+                    {
+                        string line = input.ReadLine();
+                        Match match = pdbRegex.Match(line);
+
+                        // found a new atom
+                        if (match.Success)
+                        {
+
+                            GroupCollection groups = match.Groups;
+
+                            // initialise new list in case of new chain
+                            if (newChain)
+                            {
+                                newChain = false;
+                                chains.Add(new List<Atom>());
+                                chainIndex += 1;
+                            }
+
+                            if (Equals(groups[12].ToString(), "TER"))
+                            {
+                                newChain = true;
+                                continue;
+                            }
+
+                            Atom n_atom = new Atom();
+
+                            // Set the fields obtained from file
+                            SetFieldsPDB(groups, n_atom);
+
+                            // if no element given, deduce from atom name
+                            if (string.IsNullOrEmpty(n_atom.Element))
+                            {
+                                n_atom.Element = GetElementFromName(n_atom).Replace(" ", String.Empty);
+                            }
+                            else
+                            {
+                                // if element provided, could contain artifact whitespace
+                                n_atom.Element = n_atom.Element.Replace(" ", string.Empty);
+                            }
+
+                            // set the atom's radius
+                            try
+                            {
+                                n_atom.VDWRadius = radii.vdwRadii[n_atom.Element.Replace(" ", String.Empty)];
+                                n_atom.Colour = colours.atomColours[n_atom.Element.Replace(" ", String.Empty)];
+                            }
+                            catch (System.SystemException)
+                            {
+                                n_atom.VDWRadius = (float)1.0;
+                                n_atom.Colour = Color.black;
+                            }
+
+                            chains[chainIndex].Add(n_atom);
+                        }
+                    }
+                }
+            }
+
+            foreach (List<Atom> chain in chains)
+            {
+                FindNeighbours(chain);
+                FindBackbone(chain);
+                chainsList.Add(new Chain(GetChainResidues(chain)) { ChainId = chain.First().ChainId });
+            }
+
+            foreach(Chain chain in chainsList)
+            {
+                
+            }
+
+            return chainsList;
+
+        }
+        catch (System.IO.IOException)
+        {
+            return chainsList;
         }
     }
 
@@ -381,7 +481,91 @@ public class FileParser : MonoBehaviour
             }
         }
     }
+    // same as above but for a chain
+    public static void FindBackbone(Chain chain)
+    {
+        for(int i = 0; i < chain.chainResidues.Count; i++)
+        {
+            foreach (Atom atom in chain.chainResidues[i].resAtoms)
+            {
+                foreach (Atom neighbour in atom.neighbours)
+                {
+                    if (atom.ResSeqNum != neighbour.ResSeqNum)
+                    {
+                        atom.IsBackbone = true;
+                    }
+                }
 
+                if ((i == 0 || i == chain.chainResidues.Count - 1) && atom.IsBackbone)
+                {
+                    if (atom.Element.CompareTo("C") == 0)
+                    {
+                        foreach (Atom subAtom in atom.neighbours)
+                        {
+                            if (subAtom.Element.CompareTo("C") == 0)
+                            {
+                                foreach (Atom subSubAtom in subAtom.neighbours)
+                                {
+                                    if (subSubAtom.Element.CompareTo("N") == 0)
+                                    {
+                                        subSubAtom.IsBackbone = true;
+                                        break;
+                                    }
+                                }
+                                subAtom.IsBackbone = true;
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (atom.Element.CompareTo("N") == 0)
+                        {
+                            foreach (Atom subAtom in atom.neighbours)
+                            {
+                                if (subAtom.Element.CompareTo("C") == 0)
+                                {
+                                    foreach (Atom subSubAtom in atom.neighbours)
+                                    {
+                                        foreach (Atom subSubSubAtom in subSubAtom.neighbours)
+                                        {
+                                            if (subSubSubAtom.Element.CompareTo("O") == 0)
+                                            {
+                                                subSubAtom.IsBackbone = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    subAtom.IsBackbone = true;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            foreach (Atom atom in chain.chainResidues[i].resAtoms)
+            {
+                if (!atom.IsBackbone)
+                {
+                    int count = 0;
+                    foreach (Atom neighbour in atom.neighbours)
+                    {
+                        if (neighbour.IsBackbone)
+                        {
+                            count++;
+                        }
+                    }
+
+                    // the atom neighbours two backbone atoms, it belongs to the backbone
+                    if (count == 2)
+                    {
+                        atom.IsBackbone = true;
+                    }
+                }
+            }
+        }
+    }
 
     public static List<Residue> GetResidues (List<Atom> chain)
     {
@@ -390,8 +574,6 @@ public class FileParser : MonoBehaviour
         if (chain.Any())
         {
             // atom bucket store all atoms belonging to one residue
-
-
             List<Residue> residues = new List<Residue>
             {
                 new Residue(0, chain[0].ResName , chain[0].ChainId, chain[0].ResSeqNum)
@@ -411,6 +593,41 @@ public class FileParser : MonoBehaviour
                 }
                 // increment atom count
                 residues.Last().AtomCount += 1;
+            }
+            return residues;
+        }
+        else
+        {
+            throw new Exception("No chain provided");
+        }
+    }
+
+    public static List<Residue> GetChainResidues(List<Atom> chain)
+    {
+        if (chain.Any())
+        {
+            // atom bucket store all atoms belonging to one residue
+            List<Residue> residues = new List<Residue>
+            {
+                new Residue(0, chain[0].ResName , chain[0].ChainId, chain[0].ResSeqNum)
+            };
+
+            int currRes = chain[0].ResSeqNum;
+
+
+            foreach (Atom atom in chain)
+            {
+                // reached a new residue, add current atom bucket to it
+                if (atom.ResSeqNum > currRes)
+                {
+                    residues.Add(new Residue(0, atom.ResName, atom.ChainId, atom.ResSeqNum));
+
+                    currRes = atom.ResSeqNum;
+                }
+                // increment atom count
+                residues.Last().AtomCount += 1;
+                // add atom to the current residue
+                residues.Last().resAtoms.Add(atom);
             }
             return residues;
         }
