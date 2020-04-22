@@ -13,11 +13,11 @@ public class ResiduesDropdown : MonoBehaviour
     public Dropdown chainsDropdown;
     public GameObject modelObject;
     
-    public bool hasSelectedChain = false;
-    public bool hasNewModel = false;
+    public static bool hasSelectedChain = false;
+    public static bool hasNewModel = false;
 
-    public int selectedChainIndex;
-    public int selectedResidueIndex;
+    public static int selectedChainIndex;
+    public static int selectedResidueIndex;
 
     private void Start()
     {

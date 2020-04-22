@@ -11,9 +11,10 @@ public class ChainsDropdown : MonoBehaviour
     public Dropdown chainsDropdown;
     public GameObject modelObject;
 
-    public bool hasNewModel = false;
+    public static bool hasNewModel = false;
+    public static bool initDropdown = false;
 
-    public int selectedChainIndex;
+    public static int selectedChainIndex;
 
     private void Start()
     {
@@ -25,6 +26,7 @@ public class ChainsDropdown : MonoBehaviour
     {
         if (hasNewModel)
         {
+            InitDropdown();
             PopulateDropdown();
             hasNewModel = false;
         }

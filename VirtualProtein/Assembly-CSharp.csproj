@@ -67,6 +67,8 @@
     <Compile Include="Assets\Scripts\FileManagement\StructureFileBrowser.cs" />
     <Compile Include="Assets\Scripts\ModelStructures\BezierCurves.cs" />
     <Compile Include="Assets\Scripts\ModelStructures\Structures.cs" />
+    <Compile Include="Assets\Scripts\Player\PlayerMovement.cs" />
+    <Compile Include="Assets\Scripts\Player\mouseLook.cs" />
     <Compile Include="Assets\Scripts\Representation\Model.cs" />
     <Compile Include="Assets\Scripts\UI\ChainsDropdown.cs" />
     <Compile Include="Assets\Scripts\UI\ColouringDropdown.cs" />
@@ -75,6 +77,7 @@
     <Compile Include="Assets\Scripts\UI\RepresentationsDropdown.cs" />
     <Compile Include="Assets\Scripts\UI\ResiduesDropdown.cs" />
     <Compile Include="Assets\Scripts\UI\SelectionHandler.cs" />
+    <Compile Include="Assets\Scripts\UI\ShowHideUI.cs" />
     <Reference Include="Unity.Timeline.Editor">
       <HintPath>C:/Users/Tommy/Documents/Unity/virtualprotein/VirtualProtein/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
     </Reference>

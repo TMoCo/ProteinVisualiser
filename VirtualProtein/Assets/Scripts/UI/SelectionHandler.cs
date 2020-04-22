@@ -15,9 +15,9 @@ public class SelectionHandler : MonoBehaviour
 
     List<List<int>> selectedResidues;
 
-    public bool hasNewModel = false;
-    public bool hasAdded = false;
-    public bool modelLoaded = false;
+    public static bool hasNewModel = false;
+    public static bool hasAdded = false;
+    public static bool modelLoaded = false;
 
     // Update is called once per frame
     void Update()
@@ -79,13 +79,12 @@ public class SelectionHandler : MonoBehaviour
 
     public void AddToSelection()
     {
-        ResiduesDropdown residueScript = UI.GetComponent<ResiduesDropdown>();
 
-        if(residueScript.selectedResidueIndex > 0)
+        if(ResiduesDropdown.selectedResidueIndex > 0)
         {
-            if (!selectedResidues[residueScript.selectedChainIndex].Contains(residueScript.selectedResidueIndex - 1))
+            if (!selectedResidues[ResiduesDropdown.selectedResidueIndex].Contains(ResiduesDropdown.selectedResidueIndex - 1))
             {
-                selectedResidues[residueScript.selectedChainIndex].Add(residueScript.selectedResidueIndex - 1);
+                selectedResidues[ResiduesDropdown.selectedChainIndex].Add(ResiduesDropdown.selectedResidueIndex - 1);
                 hasAdded = true;
             }
         }

@@ -13,8 +13,8 @@ public class RepresentationsDropdown : MonoBehaviour
     public int SelectedRep { get; set; }
 
     // bool to signal that a new rep has been added and should be added to dropdown list
-    public bool hasNewRep = false;
-    public bool hasNewModel = false;
+    public static bool hasNewRep = false;
+    public static bool hasNewModel = false;
 
     // where we get info from the model
     public GameObject modelObject;

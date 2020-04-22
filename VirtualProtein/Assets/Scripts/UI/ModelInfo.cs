@@ -9,7 +9,7 @@ public class ModelInfo : MonoBehaviour
     public Text residueCount;
     public Text bondCount;
 
-    public bool fileLoaded;
+    public static bool fileLoaded;
 
     // Update is called once per frame
     void Update()

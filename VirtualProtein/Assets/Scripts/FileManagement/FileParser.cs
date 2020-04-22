@@ -205,21 +205,13 @@ public class FileParser
                     }
                 }
             }
-
             foreach (List<Atom> chain in chains)
             {
                 FindNeighbours(chain);
                 FindBackbone(chain);
                 chainsList.Add(new Chain(GetChainResidues(chain)) { ChainId = chain.First().ChainId });
             }
-
-            foreach(Chain chain in chainsList)
-            {
-                
-            }
-
             return chainsList;
-
         }
         catch (System.IO.IOException)
         {

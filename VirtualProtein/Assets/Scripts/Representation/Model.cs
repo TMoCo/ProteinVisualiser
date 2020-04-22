@@ -30,7 +30,7 @@ public class Model : MonoBehaviour
     public bool hasSecStruct = false;
     public bool hasDssp = false;
 
-    // The game objects that display the model's info and interact
+    // The game objects that display the model's info and interact with player
     public GameObject UI;
 
     // The game objects that are used by the representations
@@ -38,6 +38,9 @@ public class Model : MonoBehaviour
     public GameObject AtomBond;
     public GameObject HelixSide;
     public GameObject SheetSide;
+
+    public CharacterController controller;
+    public Transform playerPosition;
 
     //                           //
     //      PRIVATE FIELDS       //
@@ -73,7 +76,7 @@ public class Model : MonoBehaviour
 
     // Extra fields for representation specifics
     private const int steps = 20;
-
+    public float speed = 10f;
 
     //                  //
     //      START       //
@@ -82,7 +85,6 @@ public class Model : MonoBehaviour
     private void Start()
     {
         parser = new FileParser();
-
     }
 
     //                   //
@@ -108,10 +110,10 @@ public class Model : MonoBehaviour
                 GetPdbData(PdbPath);
 
                 // Let UI know it can display data
-                UI.GetComponent<ModelInfo>().fileLoaded = true;
-                UI.GetComponent<ChainsDropdown>().InitDropdown();
-                UI.GetComponent<ResiduesDropdown>().InitDropdown();
-                UI.GetComponent<SelectionHandler>().hasNewModel = true;
+                ModelInfo.fileLoaded = true;
+                SelectionHandler.hasNewModel = true;
+                ChainsDropdown.hasNewModel = true;
+                ResiduesDropdown.hasNewModel = true;
                     
                 // intitialse representations
                 representations.Clear();
@@ -129,22 +131,13 @@ public class Model : MonoBehaviour
 
                 }
 
-                Debug.Log("selected residues " + test.Count);
-
                 foreach(Chain chain in modelChains)
                 {
-                    foreach(Residue residue in chain.chainResidues)
-                    {
-                        foreach(Atom atom in residue.resAtoms)
-                        {
-                            atom.IsBackbone = false;
-                        }
-                    }
-                    FileParser.FindBackbone(chain);
                     DrawVDW(chain, test);
                 }
                 newModel = false;
             }
+
 
             // Detect that the user has created a new representation
             if (newRep == true)
@@ -152,7 +145,7 @@ public class Model : MonoBehaviour
                 //signal from dropdown received, means we take data selected and create a rep with it
                 RepCreateDropdown repCreateScript = UI.GetComponent<RepCreateDropdown>();                
                 // update the select rep dropdown
-                UI.GetComponent<RepresentationsDropdown>().hasNewRep = true;
+                RepresentationsDropdown.hasNewRep = true;
 
                 newRep = false;
             }
@@ -182,7 +175,6 @@ public class Model : MonoBehaviour
                 if (parser.DSSPstatus)
                 {
                     hasSecStruct = true;
-                    Debug.Log(parser.DSSPstatus);
                     foreach(List<Atom> chain in chains)
                     {
                         RenderCartoon(chain);
@@ -191,10 +183,31 @@ public class Model : MonoBehaviour
                 hasDssp = false;
             }
 
-            if (Input.GetMouseButton(0))
+            if (ShowHideUI.showUI)
             {
-                RotateModel();
 
+                float x = Input.GetAxis("Horizontal");
+                float y = Input.GetAxis("Vertical");
+                float z = Input.GetAxis("Vertical");
+
+                
+                Vector3 movement = playerPosition.right * x + playerPosition.forward * z;
+
+                if (Input.GetKey(KeyCode.LeftShift))
+                {
+                    movement = playerPosition.up * y;
+                }
+
+                transform.Translate(movement * speed * Time.deltaTime, Space.World);
+
+                
+                
+                if (Input.GetMouseButton(0))
+                {
+                    RotateModel();
+                }
+
+                //controller.Move(movement * speed * Time.deltaTime);
             }
 
             mousePrevPos = Input.mousePosition;
@@ -629,13 +642,13 @@ public class Model : MonoBehaviour
         {
             foreach (Atom atom in residue.resAtoms)
             {
-                if (selectedResidues.Contains(currentRes) && atom.IsBackbone)
+                if (selectedResidues.Contains(currentRes))
                 {
                     GameObject n_atom = Instantiate(AtomSphere, atom.Position - modelCenter, Quaternion.identity);
 
                     n_atom.transform.parent = this.transform;
                     n_atom.GetComponent<Renderer>().material.color = atom.Colour;
-                    n_atom.transform.localScale *= atom.VDWRadius;
+                    n_atom.transform.localScale *= 2 * atom.VDWRadius;
                     residue.residueGameObjects.Add(n_atom);
                 }
             }
@@ -1276,5 +1289,10 @@ public class Model : MonoBehaviour
         }
 
         transform.Rotate(Camera.main.transform.right, Vector3.Dot(mousePosDelta, Camera.main.transform.up), Space.World);
+    }
+
+    void MoveModel(Vector3 movement)
+    {
+
     }
 }
