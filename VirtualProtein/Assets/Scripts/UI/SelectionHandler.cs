@@ -13,7 +13,7 @@ public class SelectionHandler : MonoBehaviour
     public GameObject UI;
     public GameObject modelObject;
 
-    List<List<int>> selectedResidues;
+    public static List<List<int>> selectedResidues;
 
     public static bool hasNewModel = false;
     public static bool hasAdded = false;
@@ -26,6 +26,7 @@ public class SelectionHandler : MonoBehaviour
         {
             InitList();
             PopulateText();
+            Debug.Log("There are " + selectedResidues.Count + " chains");
             modelLoaded = true;
             hasNewModel = false;
         }
@@ -79,14 +80,19 @@ public class SelectionHandler : MonoBehaviour
 
     public void AddToSelection()
     {
+        Debug.Log(ResiduesDropdown.selectedChainIndex);
+        Debug.Log(ResiduesDropdown.selectedResidueIndex);
+        Debug.Log(selectedResidues.Count);
 
-        if(ResiduesDropdown.selectedResidueIndex > 0)
+        if (ResiduesDropdown.selectedResidueIndex > 0)
         {
-            if (!selectedResidues[ResiduesDropdown.selectedResidueIndex].Contains(ResiduesDropdown.selectedResidueIndex - 1))
+            if (!selectedResidues[ResiduesDropdown.selectedChainIndex].Contains(ResiduesDropdown.selectedResidueIndex - 1))
             {
                 selectedResidues[ResiduesDropdown.selectedChainIndex].Add(ResiduesDropdown.selectedResidueIndex - 1);
                 hasAdded = true;
             }
+        /*
+         */
         }
 
     }
@@ -97,7 +103,9 @@ public class SelectionHandler : MonoBehaviour
 
         foreach(Chain chain in modelObject.GetComponent<Model>().modelChains)
         {
+            Debug.Log("adding chain");
             selectedResidues.Add(new List<int>());
         }
+        Debug.Log(selectedResidues.Count);
     }
 }

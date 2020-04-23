@@ -114,7 +114,7 @@ public class FileParser
             return chains;
                 
         }
-        catch (System.IO.IOException e)
+        catch (System.IO.IOException)
         {
             return chains;
         }

@@ -72,7 +72,6 @@ public class ResiduesDropdown : MonoBehaviour
         InitOptions();
         selectedChainIndex = 0;
         selectedResidueIndex = 0;
-        Debug.Log(hasNewModel);
     }
 
     private void InitOptions()

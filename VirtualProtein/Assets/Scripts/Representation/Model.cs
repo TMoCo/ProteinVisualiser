@@ -70,6 +70,8 @@ public class Model : MonoBehaviour
     // Fields for User Input
     Vector3 mousePrevPos = Vector3.zero;
     Vector3 mousePosDelta = Vector3.zero;
+    Vector3 minScale = new Vector3(0.01f, 0.01f, 0.01f);
+    Vector3 maxScale = new Vector3(100f, 100f, 100f);
 
     // parser for files
     private FileParser parser;
@@ -200,14 +202,16 @@ public class Model : MonoBehaviour
 
                 transform.Translate(movement * speed * Time.deltaTime, Space.World);
 
-                
-                
+
+
                 if (Input.GetMouseButton(0))
                 {
                     RotateModel();
                 }
-
-                //controller.Move(movement * speed * Time.deltaTime);
+                else if (Input.GetMouseButton(1))
+                {
+                    ScaleModel();
+                }
             }
 
             mousePrevPos = Input.mousePosition;
@@ -1207,7 +1211,7 @@ public class Model : MonoBehaviour
     {
         Vector3 center = this.GetCenterPointObject(this.transform.position);
 
-        List<List<Vector3>> structureCurves;
+        //List<List<Vector3>> structureCurves;
 
     }
     
@@ -1271,14 +1275,20 @@ public class Model : MonoBehaviour
         return curves;
     }
     
-    //                                  //
-    //      Methods for user input      //
-    //                                  //
+    //                                                        //
+    //      Methods for user input and Model manipulation     //
+    //                                                        //
 
+    // Use mouse input to detect how to rotate the model
     void RotateModel()
     {
         mousePosDelta = Input.mousePosition - mousePrevPos;
 
+        // Using the dot product, which returns a float, indicates by how much the model should be rotated around the y and x axes!
+        // No need to compute a separate z as a combination of x and y rotations results in a z rotation
+
+        // for rotation around the model's y axis, we need to check dot product of the model's y axis with world y axis
+        // and invert the rotation if they are in the opposite direction
         if(Vector3.Dot(transform.up, Vector3.up) >= 0)
         {
             transform.Rotate(transform.up, -Vector3.Dot(mousePosDelta, Camera.main.transform.right), Space.World);
@@ -1291,8 +1301,19 @@ public class Model : MonoBehaviour
         transform.Rotate(Camera.main.transform.right, Vector3.Dot(mousePosDelta, Camera.main.transform.up), Space.World);
     }
 
-    void MoveModel(Vector3 movement)
+    void ScaleModel()
     {
+        mousePosDelta = Input.mousePosition - mousePrevPos;
 
+        Vector3 modelScale = transform.localScale;
+        
+        if (Vector3.Dot(mousePosDelta, Camera.main.transform.up) > 0)
+        {
+            transform.localScale = Vector3.Min(modelScale * Mathf.Max(Vector3.Dot(mousePosDelta, Camera.main.transform.up), 1), maxScale);
+        }
+        else
+        {
+            transform.localScale = Vector3.Max(modelScale / Mathf.Max(Math.Abs(Vector3.Dot(mousePosDelta, Camera.main.transform.up)), 1), minScale);
+        }
     }
 }

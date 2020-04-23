@@ -380,7 +380,7 @@ namespace Structures
             IsDisplayed = display;
         }
         
-        // default to wireframe (like VMD) if no parameters provided
+        // default to Van Der Walls if no parameters provided
         public Representation(List<List<int>> indices)
         {
             residueIndices = indices;
