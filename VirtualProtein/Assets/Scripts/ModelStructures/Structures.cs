@@ -58,11 +58,11 @@ namespace Structures
 
     public class AminoColours
     {
-        public Dictionary<string, Color> aminoColours;
+        public static Dictionary<string, Color> aminoColours;
 
         public AminoColours()
         {
-            this.aminoColours = new Dictionary<string, Color>
+            aminoColours = new Dictionary<string, Color>
             {
                 { "ASP", new Color(230, 230, 10) },
                 { "GLU", new Color(230, 230, 10) },
@@ -92,7 +92,7 @@ namespace Structures
 
     public class AminoAcidDict
     {
-        public Dictionary<string, string> aminoAcidDictionary;
+        public static Dictionary<string, string> aminoAcidDictionary;
 
         public AminoAcidDict()
         {
@@ -137,11 +137,11 @@ namespace Structures
         public const float S  = 1.800f;
         */
 
-        public Dictionary<string, float> vdwRadii;
+        public static Dictionary<string, float> vdwRadii;
 
         public VDWRadii()
         {
-            this.vdwRadii = new Dictionary<string, float>
+            vdwRadii = new Dictionary<string, float>
             {
                 { "H", (float)1.200 },
                 { "C", (float)1.700 },
@@ -172,11 +172,11 @@ namespace Structures
         public static Color S  = Color.yellow;
         */
         
-        public Dictionary<string, Color> atomColours;
+        public static Dictionary<string, Color> atomColours;
 
         public AtomColours()
         {
-            this.atomColours = new Dictionary<string, Color>
+            atomColours = new Dictionary<string, Color>
             {
                 { "H", Color.white },
                 { "C", Color.black },
@@ -220,7 +220,7 @@ namespace Structures
     public class Residue
     {
         public List<Atom> resAtoms = new List<Atom>();
-        public List<GameObject> residueGameObjects = new List<GameObject>();
+        public List<List<GameObject>> residueGameObjects = new List<List<GameObject>>();
 
         public int AtomCount { get; set; }
         public int ResidueSeq { get; set; }
@@ -391,10 +391,14 @@ namespace Structures
         // methods
 
         // create custom tostring method that shows the rep type and colour scheme
-        public override string ToString()
+        public int GetResidueCount()
         {
-            string repAsString = repType.ToString();
-            return repAsString;
+            int count = 0;
+            foreach(List<int> sublist in residueIndices)
+            {
+                count += sublist.Count;
+            }
+            return count;
         }
     }
 }

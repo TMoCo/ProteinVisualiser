@@ -39,9 +39,7 @@ public class ChainsDropdown : MonoBehaviour
 
     private void PopulateDropdown()
     {
-        Model modelScript = modelObject.GetComponent<Model>();
-
-        foreach (Chain chain in modelScript.modelChains)
+        foreach (Chain chain in Model.chains)
         {
             chainsDropdown.options.Add(new Dropdown.OptionData { text = chain.ChainId });
         }

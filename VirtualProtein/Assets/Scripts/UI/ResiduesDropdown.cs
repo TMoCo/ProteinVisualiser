@@ -56,10 +56,10 @@ public class ResiduesDropdown : MonoBehaviour
     {
         InitOptions();
 
-        Model modelScript = modelObject.GetComponent<Model>();
+        //Model modelScript = modelObject.GetComponent<Model>();
         if (selectedChainIndex >= 0)
         {
-            foreach(Residue residue in modelScript.modelChains[selectedChainIndex].chainResidues)
+            foreach(Residue residue in Model.chains[selectedChainIndex].chainResidues)
             {
                 residueDropdown.options.Add(new Dropdown.OptionData { text = residue.ResidueToString()} );
             }

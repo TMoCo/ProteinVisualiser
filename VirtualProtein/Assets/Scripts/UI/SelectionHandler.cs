@@ -18,6 +18,7 @@ public class SelectionHandler : MonoBehaviour
     public static bool hasNewModel = false;
     public static bool hasAdded = false;
     public static bool modelLoaded = false;
+    public static bool initSelection = false;
 
     // Update is called once per frame
     void Update()
@@ -25,8 +26,7 @@ public class SelectionHandler : MonoBehaviour
         if (hasNewModel)
         {
             InitList();
-            PopulateText();
-            Debug.Log("There are " + selectedResidues.Count + " chains");
+            PopulateText(); 
             modelLoaded = true;
             hasNewModel = false;
         }
@@ -37,22 +37,28 @@ public class SelectionHandler : MonoBehaviour
             hasAdded = false;
         }
 
+        if (initSelection)
+        {
+            InitList();
+            PopulateText();
+            initSelection = false;
+        }
+
+
     }
 
     void PopulateText()
     {
         selectionText.text = string.Empty;
 
-        Model modelScript = modelObject.GetComponent<Model>();
-
         foreach(List<int> chainList in selectedResidues)
         {
             if (chainList.Any())
             {
-                selectionText.text += "CHAIN " + modelScript.modelChains[selectedResidues.IndexOf(chainList)].ChainId + '\n';
+                selectionText.text += "CHAIN " + Model.chains[selectedResidues.IndexOf(chainList)].ChainId + '\n';
                 foreach(int index in chainList)
                 {
-                    selectionText.text += '\t' + modelScript.modelChains[selectedResidues.IndexOf(chainList)].chainResidues[index].ResidueToString() + '\n';
+                    selectionText.text += '\t' + Model.chains[selectedResidues.IndexOf(chainList)].chainResidues[index].ResidueToString() + '\n';
                 }
             }
         }
@@ -63,7 +69,7 @@ public class SelectionHandler : MonoBehaviour
         if (modelLoaded)
         {
             selectedResidues.Clear();
-            foreach(Chain chain in modelObject.GetComponent<Model>().modelChains)
+            foreach(Chain chain in Model.chains)
             {
                 List<int> residuesInChain = new List<int>();
                 int index = 0;
@@ -80,10 +86,6 @@ public class SelectionHandler : MonoBehaviour
 
     public void AddToSelection()
     {
-        Debug.Log(ResiduesDropdown.selectedChainIndex);
-        Debug.Log(ResiduesDropdown.selectedResidueIndex);
-        Debug.Log(selectedResidues.Count);
-
         if (ResiduesDropdown.selectedResidueIndex > 0)
         {
             if (!selectedResidues[ResiduesDropdown.selectedChainIndex].Contains(ResiduesDropdown.selectedResidueIndex - 1))
@@ -91,21 +93,22 @@ public class SelectionHandler : MonoBehaviour
                 selectedResidues[ResiduesDropdown.selectedChainIndex].Add(ResiduesDropdown.selectedResidueIndex - 1);
                 hasAdded = true;
             }
-        /*
-         */
         }
 
     }
 
-    private void InitList()
+    public void InitList()
     {
         selectedResidues = new List<List<int>>();
 
-        foreach(Chain chain in modelObject.GetComponent<Model>().modelChains)
+        foreach(Chain chain in Model.chains)
         {
-            Debug.Log("adding chain");
             selectedResidues.Add(new List<int>());
         }
-        Debug.Log(selectedResidues.Count);
+    }
+
+    public void InitSelection()
+    {
+        initSelection = true;
     }
 }

@@ -38,10 +38,9 @@ public class StructureFileBrowser : MonoBehaviour
 
         if (FileBrowser.Success && fileName.text.EndsWith(".pdb"))
         {
-            Model modelScript = modelObject.GetComponent<Model>();
-            modelScript.PdbPath = FileBrowser.Result;
-            modelScript.newModel = true;
-            modelScript.showModel = true;
+            Model.PdbPath = FileBrowser.Result;
+            Model.newModel = true;
+            Model.showModel = true;
         }
     }
 }

@@ -37,9 +37,8 @@ public class DSSPFileBrowser : MonoBehaviour
 
         if (FileBrowser.Success && fileName.text.EndsWith(".dssp"))
         {
-            Model modelScript = modelObject.GetComponent<Model>();
-            modelScript.DsspPath = FileBrowser.Result;
-            modelScript.hasDssp = true;
+            Model.DsspPath = FileBrowser.Result;
+            Model.hasDssp = true;
         }
     }
 }

@@ -11,19 +11,15 @@ using System.Text.RegularExpressions;
 public class FileParser
 {
 
-    public bool DSSPstatus;
+    public static bool DSSPstatus = false;
 
     // dictionary containing the VDw radius and colours of each element
     readonly VDWRadii radii = new VDWRadii();
     readonly AtomColours colours = new AtomColours();
-
-    public FileParser()
-    {
-        DSSPstatus = false;
-    }
-    
+   
 
     // parses a PDB file
+    /*
     public List<List<Atom>> ParsePDB(string path)
     {
         List<List<Atom>> chains = new List<List<Atom>>();
@@ -119,8 +115,9 @@ public class FileParser
             return chains;
         }
     }
+     */
 
-    public List<Chain> ParsePDBtoChain(string path)
+    public static List<Chain> ParsePDB(string path)
     {
         List<List<Atom>> chains = new List<List<Atom>>();
         List<Chain> chainsList = new List<Chain>();
@@ -149,8 +146,7 @@ public class FileParser
 
                     while (!input.EndOfStream)
                     {
-                        string line = input.ReadLine();
-                        Match match = pdbRegex.Match(line);
+                        Match match = pdbRegex.Match(input.ReadLine());
 
                         // found a new atom
                         if (match.Success)
@@ -158,18 +154,18 @@ public class FileParser
 
                             GroupCollection groups = match.Groups;
 
+                            if (Equals(groups[12].ToString(), "TER"))
+                            {
+                                newChain = true;
+                                continue;
+                            }
+
                             // initialise new list in case of new chain
                             if (newChain)
                             {
                                 newChain = false;
                                 chains.Add(new List<Atom>());
                                 chainIndex += 1;
-                            }
-
-                            if (Equals(groups[12].ToString(), "TER"))
-                            {
-                                newChain = true;
-                                continue;
                             }
 
                             Atom n_atom = new Atom();
@@ -191,8 +187,8 @@ public class FileParser
                             // set the atom's radius
                             try
                             {
-                                n_atom.VDWRadius = radii.vdwRadii[n_atom.Element.Replace(" ", String.Empty)];
-                                n_atom.Colour = colours.atomColours[n_atom.Element.Replace(" ", String.Empty)];
+                                n_atom.VDWRadius = VDWRadii.vdwRadii[n_atom.Element.Replace(" ", String.Empty)];
+                                n_atom.Colour = AtomColours.atomColours[n_atom.Element.Replace(" ", String.Empty)];
                             }
                             catch (System.SystemException)
                             {
@@ -208,23 +204,24 @@ public class FileParser
             foreach (List<Atom> chain in chains)
             {
                 FindNeighbours(chain);
-                FindBackbone(chain);
-                chainsList.Add(new Chain(GetChainResidues(chain)) { ChainId = chain.First().ChainId });
+                Chain chainObject = new Chain(GetChainResidues(chain)) { ChainId = chain.First().ChainId };
+                FindBackbone(chainObject);
+                chainsList.Add(chainObject);
             }
             return chainsList;
         }
-        catch (System.IO.IOException)
+        catch (IOException)
         {
             return chainsList;
         }
     }
 
     // parse the DSSP seondary structure data to find which residues form alpha helices and beta sheets
-    public List<SecondaryStructure> ParseDSSP(List<List<Atom>> chains, string path)
+    public static List<SecondaryStructure> ParseDSSP(List<Chain> chains, string path, int residueCount)
     {
         List<SecondaryStructure> modelStructInfo = new List<SecondaryStructure>();
 
-        if (!chains.Any() || !chains[0].Any())
+        if (!chains.Any() || !chains.First().chainResidues.Any())
         {
             DSSPstatus = false;
             return modelStructInfo;
@@ -240,28 +237,15 @@ public class FileParser
                 {
                     Regex dsspRegex = new Regex(@"^\s*(?<line>\d+)\s*(?<resNum>\d+)\s+(?<chainId>\w)\s+(?<AminoAcid>[^0-9])\s{2}(?<structure>[^0-9])|^\s*\d+\s*(!\*)");
 
-                    int resCount = 0;
-                    foreach(List<Atom> chain in chains)
-                    {
-                        foreach(Residue res in GetResidues(chains.First()))
-                        {
-                            resCount += 1;
-                        }
-                    }
-                    Debug.Log(resCount);
-
-
-                    int chainIndex = 0;
-                    List<Residue> chainResidues = new List<Residue>();
                     int residueIndex = 0;
-                    bool newChain = true;
-
-                    //Debug.Log("starting with chain " + curChainIndex);
+                    int chainIndex = 0;
+                    List<Residue> chainResidues = chains[chainIndex].chainResidues;
+                    
+                    bool newChain = false;
 
                     while (!input.EndOfStream)
                     {
-                        string line = input.ReadLine();
-                        Match match = dsspRegex.Match(line);
+                        Match match = dsspRegex.Match(input.ReadLine());
 
                         if (match.Success)
                         {
@@ -275,7 +259,7 @@ public class FileParser
                                     DSSPstatus = false;
                                     break;
                                 }
-                                chainResidues = GetResidues(chains[chainIndex]);
+                                chainResidues = chains[chainIndex].chainResidues;
                                 newChain = false;
                             }
 
@@ -288,18 +272,16 @@ public class FileParser
                                 residueIndex = 0;
                                 // signal new chain
                                 newChain = true;
-                                // if there are more lines than there are chains, we have the wrong file
-
                                 // skip res comparison lower down
                                 continue;
                             }
 
-                            // we haven't reached the end of the chain but check that the chain is not too longs
+                            // we haven't reached the end of the chain but check that the chain is not too long
                             if(residueIndex == chainResidues.Count)
                             {
                                 DSSPstatus = false;
                                 modelStructInfo.Clear();
-                                return modelStructInfo;
+                                break;
                             }
 
                             // the chain is not too small so proceed to comparison
@@ -307,7 +289,7 @@ public class FileParser
                             {
                                 DSSPstatus = false;
                                 modelStructInfo.Clear();
-                                return modelStructInfo;
+                                break;
                             }
                             else if (string.Equals(groups[6].ToString(), "H"))
                             {
@@ -331,16 +313,15 @@ public class FileParser
             return modelStructInfo;
 
         }
-        catch (System.IO.IOException e)
+        catch (IOException)
         {
-            Debug.Log(e);
             DSSPstatus = false;
             modelStructInfo.Clear();
             return modelStructInfo;
         }
     }
 
-    private void SetFieldsPDB(GroupCollection groups, Atom atom)
+    private static void SetFieldsPDB(GroupCollection groups, Atom atom)
     {
         atom.AtomSerial = Int32.Parse(groups[1].ToString());
         atom.AtomName = groups[2].ToString();
@@ -365,115 +346,6 @@ public class FileParser
 
     // iterate over the atoms, checking their neighbours. If one neighbour belongs to a different residue,
     // then it must belong to a peptide bond (either the N from amino or the C from carboxyl)
-    public void FindBackbone(List<Atom> atoms)
-    {
-
-        int res_curr_nb;
-        // finds the atoms that bridge two residues 
-        for (int i = 0; i < atoms.Count; i++)
-        {
-            res_curr_nb = atoms[i].ResSeqNum;
-
-            // compare current atom's res nb with it's neighbours'
-            foreach (Atom atom in atoms[i].neighbours)
-            {
-                // atom neighbours another residue, it belongs to the peptide bond
-                if ((atom.ResSeqNum > res_curr_nb) || (atom.ResSeqNum < res_curr_nb))
-                {
-                    atom.IsBackbone = true;
-                }
-            }
-        }
-
-        // then reiterate to set the atoms between the peptide bonds as belonging to the backbone
-        // as well as the atoms that belong to the backbone but are not between peptide bonds
-
-        for (int i = 0; i < atoms.Count; i++)
-        {
-            // only check atoms we don't already know belong to the backbone
-            if (!atoms[i].IsBackbone)
-            {
-                int count = 0;
-                foreach (Atom atom in atoms[i].neighbours)
-                {
-                    if (atom.IsBackbone)
-                    {
-                        count++;
-                    }
-                }
-
-                // the atom neighbours two backbone atoms, it belongs to the backbone
-                if (count == 2)
-                {
-                    atoms[i].IsBackbone = true;
-                }
-            }
-        }
-
-        // iterate over all the atoms, detect first and last current backbone atom
-        int first = -1;
-        int last = -1;
-        for (int i = 0; i < atoms.Count; i++)
-        {
-            if (atoms[i].IsBackbone)
-            {
-                // this is the first backbone atom
-                if (first == -1)
-                    first = i;
-                // this is the last backbone atom
-                last = i;
-            }
-        }
-
-        // from these two atoms, detect their element to determine what the final backbone atoms are
-        // if its carbon, then its connected to another carbon and a nitrogen
-        //Debug.Log("\"" + atoms[first].element + "\"");
-        if (atoms[first].Element.CompareTo("C") == 0)
-        {
-           // Debug.Log("First is indeed a carbon");
-            foreach(Atom atom in atoms[first].neighbours)
-            {
-                if (atom.Element.CompareTo("C") == 0)
-                {
-                    atom.IsBackbone = true;
-                    foreach(Atom sub_atom in atom.neighbours)
-                    {
-                        if(sub_atom.Element.CompareTo("N") == 0)
-                        {
-                            sub_atom.IsBackbone = true;
-                            break;
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-        
-        
-        // if it is nitrogen then its connected to two consecutive carbons belonging to a carboxyl group
-        if (atoms[last].Element.CompareTo("N") == 0)
-        {
-            foreach (Atom atom in atoms[last].neighbours)
-            {
-                if (atom.Element.CompareTo("C") == 0)
-                {
-                    atom.IsBackbone = true;
-                    foreach (Atom sub_atom in atom.neighbours)
-                    {
-                        foreach (Atom subsub_atom in sub_atom.neighbours)
-                        {
-                            if (subsub_atom.Element.CompareTo("O") == 0)
-                            {
-                                sub_atom.IsBackbone = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    // same as above but for a chain
     public static void FindBackbone(Chain chain)
     {
         for(int i = 0; i < chain.chainResidues.Count; i++)
@@ -517,7 +389,7 @@ public class FileParser
                             {
                                 if (subAtom.Element.CompareTo("C") == 0)
                                 {
-                                    foreach (Atom subSubAtom in atom.neighbours)
+                                    foreach (Atom subSubAtom in subAtom.neighbours)
                                     {
                                         foreach (Atom subSubSubAtom in subSubAtom.neighbours)
                                         {
@@ -723,29 +595,27 @@ public class FileParser
     }
 
     // Find the number of bonds between atoms in a list of atoms
-    public static int GetBondCount(List<Atom> atoms)
+    public static int GetBondCount(Chain chain)
     {
         int bondCount = 0;
-        List<int> checkedAtoms = new List<int>();
-
         // loop over each atom and check its neighbours
         // for each neighbour (i.e bonded) add its serial to the list of ints
         // and increment bond count. If the neighbour has already been check (its serial is already
         // in the list) then don't count the bond again.
 
-        foreach(Atom atom in atoms)
+        foreach(Residue residue in chain.chainResidues)
         {
-            checkedAtoms.Add(atom.AtomSerial);
-
-            foreach(Atom neighbour in atom.neighbours)
+            foreach(Atom atom in residue.resAtoms)
             {
-                if (!checkedAtoms.Contains(neighbour.AtomSerial))
+                foreach (Atom neighbour in atom.neighbours)
                 {
-                    bondCount += 1;
+                    if (neighbour.AtomSerial > atom.AtomSerial)
+                    {
+                        bondCount += 1;
+                    }
                 }
             }
         }
-        
         return bondCount;
     }
 }

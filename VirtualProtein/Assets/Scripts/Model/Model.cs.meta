@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: e08323a254573b14e8e38ef9307a2740
+timeCreated: 1584452826
+licenseType: Free
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - AtomSphere: {fileID: 1258869645128094, guid: ed818c202b607424d95a7ea4c69f813a,
+      type: 2}
+  - AtomBond: {fileID: 1512940657564314, guid: be65c3cf4eb00284a867e4f66e8f273a, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
