@@ -14,10 +14,6 @@ public class Model : MonoBehaviour
     //      FIELDS      //
     //                  //
 
-    //                          //
-    //      PUBLIC FIELDS       //
-    //                          //
-
     // fields for comunication wuth UI
     public static string PdbPath { get; set; }
     public static string DsspPath { get; set; }
@@ -30,44 +26,37 @@ public class Model : MonoBehaviour
     public static bool hasSecStruct = false;
     public static bool hasDssp = false;
 
-    // The game objects that display the model's info and interact with player
+    // reference to the game object with the scripts that display the model's info and interact with player
     public GameObject UI;
 
-    // The game objects that are used by the representations
+    // references to the game object models that are used by the representationsn 
     public GameObject AtomSphere;
     public GameObject AtomBond;
     public GameObject HelixSide;
     public GameObject SheetSide;
 
+    // references to the scene components that handle movement of camera in the scene
     public CharacterController controller;
     public Transform playerPosition;
 
-    //                           //
-    //      PRIVATE FIELDS       //
-    //                           //
-
-    // Fields containing lists of the atom objects and the representations used for the model
+    // fields containing protein model 
     public static List<Chain> chains = new List<Chain>();
     public static List<Representation> representations = new List<Representation>();
 
-    public int AtomCount { get; set; }
-    public int BondCount { get; set; }
-    public int ResidueCount { get; set; }
-
-    public int repCounter = 0;
-
+    public static int AtomCount { get; set; }
+    public static int BondCount { get; set; }
+    public static int ResidueCount { get; set; }
+    
     // Fields for User Input
-    Vector3 mousePrevPos = Vector3.zero;
-    Vector3 mousePosDelta = Vector3.zero;
-    Vector3 minScale = new Vector3(0.01f, 0.01f, 0.01f);
-    Vector3 maxScale = new Vector3(100f, 100f, 100f);
+    private Vector3 mousePrevPos = Vector3.zero;
+    private Vector3 mousePosDelta = Vector3.zero;
+    private Vector3 minScale = new Vector3(0.01f, 0.01f, 0.01f);
+    private Vector3 maxScale = new Vector3(100f, 100f, 100f);
+    private const float speed = 20f;
 
-    // parser for files
-    private FileParser parser;
-
-    // Extra fields for representation specifics
+    // Extra field for representation specifics
     private const int steps = 20;
-    public float speed = 20f;
+
 
     //                   //
     //      UPDATE       //
@@ -177,6 +166,17 @@ public class Model : MonoBehaviour
                 }
             }
 
+            if (Input.GetKey(KeyCode.C))
+            {
+                Quaternion modelRotation = transform.rotation;
+                transform.position = playerPosition.transform.position;
+                transform.rotation = playerPosition.rotation;
+
+                transform.Translate(new Vector3(0f, 0f, 30f), Space.Self);
+
+                transform.rotation = modelRotation;
+            }
+
             mousePrevPos = Input.mousePosition;
         }
     }
@@ -252,7 +252,7 @@ public class Model : MonoBehaviour
         Debug.Log(hasSecStruct);
     }
 
-    // sets all the residues (atoms) of the model to their correct secondary structure
+    // sets all the secondary structure field of the residues of the model to their correct secondary structure
     private void SetStructureInfo(List<SecondaryStructure> infoList)
     {
         // info list should not be longer than the residue count 
@@ -270,10 +270,6 @@ public class Model : MonoBehaviour
         }
     }
 
-    //                          //
-    //          GETTERS         //
-    //                          //
-
     // gets the list of representations as a list of strings
     public List<string> RepsToString()
     {
@@ -285,7 +281,7 @@ public class Model : MonoBehaviour
         return repsAsStrings;
     }
 
-    // same as above but includes an offset
+    // returns the point at the centre of the protein
     public Vector3 GetProteinCentre()
     {
         Vector3 centre = Vector3.zero;
@@ -315,7 +311,7 @@ public class Model : MonoBehaviour
         return new Representation(SelectionHandler.selectedResidues, (RepresentationType)CreateRepresentation.SelectedRepType, true);
     }
 
-    // set the representation's gameobject to inactive
+    // set the representation's gameobjects to inactive
     public void HideRepresentation(int representationIndex)
     {
         foreach(Chain chain in chains)
@@ -366,6 +362,9 @@ public class Model : MonoBehaviour
                     case RepresentationType.Tube:
                         InstantiateTube(chains[i], representation.residueIndices[i]);
                         break;
+                    case RepresentationType.Cartoon:
+                        InstantiateCartoon(chains[i], representation.residueIndices[i]);
+                        break;
                 }
             }
         }
@@ -374,7 +373,7 @@ public class Model : MonoBehaviour
     // Centers the model around the origin
     public void CenterRepresentation(int representationIndex)
     {
-        // get the center point
+        // get the centre point
         Vector3 centre = GetProteinCentre();
 
         foreach(Chain chain in chains)
@@ -404,8 +403,7 @@ public class Model : MonoBehaviour
             {
                 if(selectedResidues.Contains(currentRes))
                 {
-                    GameObject n_atom = Instantiate(AtomSphere, atom.Position, Quaternion.identity);
-                    n_atom.transform.parent = this.transform;
+                    GameObject n_atom = Instantiate(AtomSphere, atom.Position, Quaternion.identity, transform);
                     n_atom.GetComponent<Renderer>().material.color = atom.Colour;
                     newRepresentationObjects.Add(n_atom);
 
@@ -416,11 +414,8 @@ public class Model : MonoBehaviour
                             Vector3 bond_center = (atom.Position + neighbour.Position) / (float)2.0;
                             float distance = Vector3.Distance(atom.Position, neighbour.Position);
 
-                            GameObject bondP1 = Instantiate(AtomBond, (bond_center + atom.Position) / (float)2.0, Quaternion.identity);
-                            GameObject bondP2 = Instantiate(AtomBond, (bond_center + neighbour.Position) / (float)2.0, Quaternion.identity);
-                            // set parent transform
-                            bondP1.transform.parent = this.transform;
-                            bondP2.transform.parent = this.transform;
+                            GameObject bondP1 = Instantiate(AtomBond, (bond_center + atom.Position) / (float)2.0, Quaternion.identity, transform);
+                            GameObject bondP2 = Instantiate(AtomBond, (bond_center + neighbour.Position) / (float)2.0, Quaternion.identity, transform);
                             // orient bond to look at closest atom
                             bondP1.transform.LookAt(atom.Position, Vector3.up);
                             bondP2.transform.LookAt(neighbour.Position, Vector3.up);
@@ -454,9 +449,7 @@ public class Model : MonoBehaviour
             {
                 if (selectedResidues.Contains(currentRes))
                 {
-                    GameObject n_atom = Instantiate(AtomSphere, atom.Position, Quaternion.identity);
-
-                    n_atom.transform.parent = this.transform;
+                    GameObject n_atom = Instantiate(AtomSphere, atom.Position, Quaternion.identity, transform);
 
                     n_atom.GetComponent<Renderer>().material.color = atom.Colour;
 
@@ -484,8 +477,7 @@ public class Model : MonoBehaviour
             {
                 if (selectedResidues.Contains(currentRes))
                 {
-                    GameObject n_atom = Instantiate(AtomSphere, atom.Position, Quaternion.identity);
-                    n_atom.transform.parent = this.transform;
+                    GameObject n_atom = Instantiate(AtomSphere, atom.Position, Quaternion.identity, transform);
                     n_atom.transform.localScale = new Vector3(10f, 10f, 10f);
                     n_atom.GetComponent<Renderer>().material.color = atom.Colour;
                     newRepresentationObjects.Add(n_atom);
@@ -497,11 +489,8 @@ public class Model : MonoBehaviour
                             Vector3 bond_center = (atom.Position + neighbour.Position) / (float)2.0;
                             float distance = Vector3.Distance(atom.Position, neighbour.Position);
 
-                            GameObject bondP1 = Instantiate(AtomBond, (bond_center + atom.Position) / (float)2.0, Quaternion.identity);
-                            GameObject bondP2 = Instantiate(AtomBond, (bond_center + neighbour.Position) / (float)2.0, Quaternion.identity);
-                            // set parent transform
-                            bondP1.transform.parent = this.transform;
-                            bondP2.transform.parent = this.transform;
+                            GameObject bondP1 = Instantiate(AtomBond, (bond_center + atom.Position) / (float)2.0, Quaternion.identity, transform);
+                            GameObject bondP2 = Instantiate(AtomBond, (bond_center + neighbour.Position) / (float)2.0, Quaternion.identity, transform);
                             // orient bond to look at closest atom
                             bondP1.transform.LookAt(atom.Position, Vector3.up);
                             bondP2.transform.LookAt(neighbour.Position, Vector3.up);
@@ -545,8 +534,7 @@ public class Model : MonoBehaviour
                     {
                         segmentPosition = Bezier.GetPointCube(curves[i - 1][2], curves[i - 1][2] + (curves[i - 1][2] - curves[i - 1][1]), curves[i][1], curves[i][2], j / (float)steps);
                     }
-                    GameObject n_tube = Instantiate(AtomBond, segmentPosition, Quaternion.identity);
-                    n_tube.transform.parent = transform;
+                    GameObject n_tube = Instantiate(AtomBond, segmentPosition, Quaternion.identity, transform);
                     n_tube.transform.LookAt(prevSegment);
                     n_tube.transform.localScale = new Vector3(10f, 10f, 15f);
                     prevSegment = n_tube.transform.position;
@@ -765,7 +753,7 @@ public class Model : MonoBehaviour
                         for (int j = 0; j < steps; j++)
                         {
                             Vector3 segmentPos = Bezier.GetPointQuad(curvesAlpha[0][0], curvesAlpha[0][1], curvesAlpha[0][2], j / (float)steps);
-                            GameObject n_Helix = Instantiate(HelixSide, segmentPos , rotation);
+                            GameObject n_Helix = Instantiate(HelixSide, segmentPos , rotation, transform);
                             n_Helix.transform.parent = transform;
                             prevSegAlpha = n_Helix.transform.position;
                         }
@@ -871,34 +859,80 @@ public class Model : MonoBehaviour
         }
     }
 
-    private void DrawCartoon(Chain chain, List<int> selectedResidues)
+    private void InstantiateCartoon(Chain chain, List<int> selectedResidues)
     {
-        // Get the curves for each residue, grouped by secondary structure in lists.
-        // keep track of the residues by incrementing to assign the gameobjects to the corresponding residue
-        SecondaryStructure currentStructure = chain.chainResidues.First().ResStructureInf;
-        List<List<Vector3>> structure = new List<List<Vector3>>();
-        //int residueIndex = 0;
-
-        foreach(Residue residue in chain.chainResidues)
+        // convert chain into curves
+        List<List<Vector3>> curves = GetCurves(chain);
+        
+        // iterate over the curves, ignoring those that refer to unselected residues
+        Vector3 prevSegment = curves[0][0];
+        for (int i = 0; i < curves.Count; i++)
         {
-            if (residue.ResStructureInf == currentStructure)
+            List<GameObject> newRepresentationObjects = new List<GameObject>();
+            if (selectedResidues.Contains(i))
             {
-                structure.Add(GetCurve(residue));
-            }
-            else
-            {
-                switch (currentStructure)
+                switch (chain.chainResidues[i].ResStructureInf)
                 {
                     case SecondaryStructure.AlphaHelix:
-                        break;
+                    // get the axis of the current residue and create a plane with axis as normal
+                    Vector3 axis = curves[i][2] - curves[i][0];
+                    Plane axisPlane = new Plane(axis.normalized, curves[i][0]);
+                    // We need to place the axis at the average point of the curve's atoms projections onto the plane
+                    Vector3 avgPoint = (axisPlane.ClosestPointOnPlane(curves[i][0]) + axisPlane.ClosestPointOnPlane(curves[i][1]) + axisPlane.ClosestPointOnPlane(curves[i][2])) / 3 ;
+                    
+                    break;
+
                     case SecondaryStructure.BetaSheet:
-                        break;
+                    // render a sheet (tube with sheet gameobjects instead of cylindres)
+                    for (int j = 0; j < steps; j++)
+                    {
+
+                        Vector3 segmentPosition;
+                        if (i == 0)
+                        {
+                            segmentPosition = Bezier.GetPointQuad(curves[0][0], curves[0][1], curves[0][2], j / (float)steps);
+                        }
+                        else
+                        {
+                            segmentPosition = Bezier.GetPointCube(curves[i - 1][2], curves[i - 1][2] + (curves[i - 1][2] - curves[i - 1][1]), curves[i][1], curves[i][2], j / (float)steps);
+                        }
+
+                        GameObject n_sheet = Instantiate(SheetSide, segmentPosition, Quaternion.identity, transform);
+                        n_sheet.transform.LookAt(prevSegment);
+                        prevSegment = n_sheet.transform.position;
+                        // NB There are as many curves as there are residues, so use i as the residue index!
+                        newRepresentationObjects.Add(n_sheet);
+                    }
+                    break;
+
                     case SecondaryStructure.Other:
-                        break;
+                    // render a tube
+                    for (int j = 0; j < steps; j++)
+                    {
+
+                        Vector3 segmentPosition;
+                        if (i == 0)
+                        {
+                            segmentPosition = Bezier.GetPointQuad(curves[0][0], curves[0][1], curves[0][2], j / (float)steps);
+                        }
+                        else
+                        {
+                            segmentPosition = Bezier.GetPointCube(curves[i - 1][2], curves[i - 1][2] + (curves[i - 1][2] - curves[i - 1][1]), curves[i][1], curves[i][2], j / (float)steps);
+                        }
+
+                        GameObject n_tube = Instantiate(AtomBond, segmentPosition, Quaternion.identity, transform);
+                        n_tube.transform.LookAt(prevSegment);
+                        n_tube.transform.localScale = new Vector3(10f, 10f, 15f);
+                        prevSegment = n_tube.transform.position;
+                        // NB There are as many curves as there are residues, so use i as the residue index!
+                        newRepresentationObjects.Add(n_tube);
+                    }
+                    break;
                 }
             }
+            // add list of gameobjects (empty is completely fine) to the residue's list
+            chain.chainResidues[i].residueGameObjects.Add(newRepresentationObjects);
         }
-
     }
     
     // Utility function for the cartoon method, divides the list of atoms into curves
@@ -937,6 +971,7 @@ public class Model : MonoBehaviour
         return curves;
     }
 
+    // return the curve of a residue
     private List<Vector3> GetCurve(Residue residue)
     {
         List<Vector3> curve = new List<Vector3>();
@@ -949,6 +984,7 @@ public class Model : MonoBehaviour
         }
         return curve;
     }
+
     // returns the backbone atoms of each residue, used as the influence points of each best fit curve for tube and cartoon
     private List<List<Vector3>> GetCurves(Chain chain)
     {
@@ -983,21 +1019,31 @@ public class Model : MonoBehaviour
         mousePosDelta = Input.mousePosition - mousePrevPos;
 
         // Using the dot product, which returns a float, indicates by how much the model should be rotated around the y and x axes!
-        // No need to compute a separate z as a combination of x and y rotations results in a z rotation
-
-        // for rotation around the model's y axis, we need to check dot product of the model's y axis with world y axis
-        // and invert the rotation if they are in the opposite direction
-        if(Vector3.Dot(transform.up, Vector3.up) >= 0)
+        if (Input.GetKey(KeyCode.LeftShift))
         {
-            transform.Rotate(Vector3.up, -Vector3.Dot(mousePosDelta, Camera.main.transform.right), Space.World);
+            transform.Rotate(Camera.main.transform.forward, Vector3.Dot(mousePosDelta, Camera.main.transform.up), Space.World);
         }
         else
         {
             transform.Rotate(Vector3.up, -Vector3.Dot(mousePosDelta, Camera.main.transform.right), Space.World);
+
+            transform.Rotate(Camera.main.transform.right, Vector3.Dot(mousePosDelta, Camera.main.transform.up), Space.World);
+
+            // for rotation around the model's y axis, we need to check dot product of the model's y axis with world y axis
+            // and invert the rotation if they are in the opposite direction
+            /*
+            if (Vector3.Dot(transform.up, Vector3.up) >= 0)
+            {
+                transform.Rotate(Vector3.up, -Vector3.Dot(mousePosDelta, Camera.main.transform.right), Space.World);
+            }
+            else
+            {
+            }
+             */
         }
 
-        transform.Rotate(Camera.main.transform.right, Vector3.Dot(mousePosDelta, Camera.main.transform.up), Space.World);
     }
+
     // Use mouse to detect hot to scale the model
     void ScaleModel()
     {
@@ -1011,7 +1057,7 @@ public class Model : MonoBehaviour
         {
             transform.localScale = Vector3.Min(modelScale * Mathf.Max(Vector3.Dot(mousePosDelta, Camera.main.transform.up) * 0.5f, 1), maxScale);
         }
-        else
+        else if (Vector3.Dot(mousePosDelta, Camera.main.transform.up) < 0)
         {
             transform.localScale = Vector3.Max(modelScale / Mathf.Max(Math.Abs(Vector3.Dot(mousePosDelta, Camera.main.transform.up) * 0.5f), 1), minScale);
         }

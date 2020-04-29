@@ -1,14 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 using Structures;
 
 public class ResiduesDropdown : MonoBehaviour
 {
-
     public Dropdown residueDropdown;
     public Dropdown chainsDropdown;
     public GameObject modelObject;
@@ -55,8 +51,7 @@ public class ResiduesDropdown : MonoBehaviour
     private void PopulateDropdown()
     {
         InitOptions();
-
-        //Model modelScript = modelObject.GetComponent<Model>();
+        
         if (selectedChainIndex >= 0)
         {
             foreach(Residue residue in Model.chains[selectedChainIndex].chainResidues)

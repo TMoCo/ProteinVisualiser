@@ -1,16 +1,13 @@
-﻿using System;
-using System.Linq;
-
-using System.Text.RegularExpressions;
+﻿using System.Linq;
 using System.Collections.Generic;
-using UnityEngine;
 
+using UnityEngine;
 
 //
 // The idea is to create structure classes that build into each other
 //
 //  |----> Model (one or more chains)
-//  |---------> chain (one or more secondary structures)
+//  |---------> Chain (one or more secondary structures)
 //  |--------------> Structure (one or more residues)
 //  |-------------------> Residue (various nb of atoms for each amino acid)
 //  |------------------------> Atom
@@ -18,6 +15,8 @@ using UnityEngine;
 //
 namespace Structures
 {
+    //      ENUMS     //
+
     public enum SecondaryStructure
     {
         Other,
@@ -40,6 +39,8 @@ namespace Structures
         ByResidueType,
         ByStructure
     };
+
+    //  REFERENCE STATIC DICTIONARIES   //
 
     public class StructureColours
     {
@@ -192,6 +193,9 @@ namespace Structures
         }
     }
 
+    //  PROTEIN DATA STRUCTURES  //
+
+    // A protein's chain, essentially a list of residues
     public class Chain
     {
         public List<Residue> chainResidues = new List<Residue>();
@@ -213,10 +217,8 @@ namespace Structures
         }
     }
 
-
     // Each residue contains a certain number of atoms...
     // They are linked together via a peptide bond, the bonding of one's carboxyl with another's amino group
-    
     public class Residue
     {
         public List<Atom> resAtoms = new List<Atom>();
@@ -296,6 +298,7 @@ namespace Structures
         }
     }
 
+    // Atom containing an individual atom's data such as position, element etc...
     public class Atom
     {
         // Fields obtained from a file
@@ -357,7 +360,7 @@ namespace Structures
     }
 
     // A class to define each representation that a user may want to create
-    // A representation has no idea of what model or part of a model it representing
+    // A representation has no idea of what model or part of a model it is representing
     public class Representation
     {
         // fields

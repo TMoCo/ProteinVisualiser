@@ -22,10 +22,9 @@ public class ModelInfo : MonoBehaviour
 
     void PopulateFields()
     {
-        Model modelScript = modelObject.GetComponent<Model>();
-        atomCount.text = modelScript.AtomCount.ToString();
-        bondCount.text = modelScript.BondCount.ToString();
-        residueCount.text = modelScript.ResidueCount.ToString();
+        atomCount.text = Model.AtomCount.ToString();
+        bondCount.text = Model.BondCount.ToString();
+        residueCount.text = Model.ResidueCount.ToString();
     }
 }
 
