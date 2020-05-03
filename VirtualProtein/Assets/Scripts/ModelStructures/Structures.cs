@@ -3,16 +3,6 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
-//
-// The idea is to create structure classes that build into each other
-//
-//  |----> Model (one or more chains)
-//  |---------> Chain (one or more secondary structures)
-//  |--------------> Structure (one or more residues)
-//  |-------------------> Residue (various nb of atoms for each amino acid)
-//  |------------------------> Atom
-//
-//
 namespace Structures
 {
     //      ENUMS     //
@@ -35,69 +25,56 @@ namespace Structures
 
     public enum ColourScheme
     {
-        ByAtomType,
-        ByResidueType,
-        ByStructure
+        AtomType,
+        ResidueType,
+        StructureType,
+        Arbitrary
     };
 
     //  REFERENCE STATIC DICTIONARIES   //
 
     public class StructureColours
     {
-        public Dictionary<SecondaryStructure, Color> structureColours;
-
-        public StructureColours()
-        {
-            structureColours = new Dictionary<SecondaryStructure, Color>
+        public static Dictionary<SecondaryStructure, Color> structureColours = new Dictionary<SecondaryStructure, Color>
             {
                 {SecondaryStructure.AlphaHelix, Color.red },
                 {SecondaryStructure.BetaSheet, Color.blue },
                 {SecondaryStructure.Other, Color.green }
             };
-        }
     }
 
-    public class AminoColours
+    public class ResidueColours
     {
-        public static Dictionary<string, Color> aminoColours;
-
-        public AminoColours()
-        {
-            aminoColours = new Dictionary<string, Color>
+        public static Dictionary<string, Color> aminoColours = new Dictionary<string, Color>
             {
-                { "ASP", new Color(230, 230, 10) },
-                { "GLU", new Color(230, 230, 10) },
+                { "ASP", new Color(0.9f, 0.9f, 0.04f, 1) },
+                { "GLU", new Color(0.9f, 0.9f, 0.04f, 1) },
                 { "CYS", Color.yellow            },
                 { "MET", Color.yellow            },
                 { "LYS", Color.blue              },
                 { "ARG", Color.blue              },
-                { "SER", new Color(250, 150, 0)  },
-                { "THR", new Color(250, 150, 0)  },
-                { "PHE", new Color(50, 50, 170)  },
-                { "TYR", new Color(50, 50, 170)  },
+                { "SER", new Color(0.98f, 0.59f, 0, 1)  },
+                { "THR", new Color(0.98f, 0.59f, 0, 1)  },
+                { "PHE", new Color(0.20f, 0.20f, 0.67f, 1)  },
+                { "TYR", new Color(0.20f, 0.20f, 0.67f, 1)  },
                 { "ASN", Color.cyan              },
                 { "GLN", Color.cyan              },
-                { "GLY", new Color(235, 235, 235)},
+                { "GLY", new Color(0.92f, 0.92f, 0.92f, 1)},
                 { "LEU", Color.green             },
                 { "VAL", Color.green             },
                 { "ILE", Color.green             },
-                { "ALA", new Color(200, 200, 200)},
-                { "TRP", new Color(180, 90, 180) },
-                { "HIS", new Color(130, 130, 210)},
-                { "PRO", new Color(220, 150, 130)},
+                { "ALA", new Color(0.78f, 0.78f, 0.78f, 1)},
+                { "TRP", new Color(0.70f, 0.35f, 0.70f, 1) },
+                { "HIS", new Color(0.51f, 0.51f, 0.82f, 1)},
+                { "PRO", new Color(0.86f, 0.59f, 0.51f, 1)},
 
-                { "OTHER", new Color(190, 160, 110)}
+                { "OTHER", new Color(0.74f, 0.63f, 0.43f, 1)}
             };
-        }
     }
 
-    public class AminoAcidDict
+    public class AminoAcids
     {
-        public static Dictionary<string, string> aminoAcidDictionary;
-
-        public AminoAcidDict()
-        {
-            aminoAcidDictionary = new Dictionary<string, string>
+        public static Dictionary<string, string> aminoAcidDictionary = new Dictionary<string, string>
             {
                 {"A", "ALA"},
                 {"R", "ARG"},
@@ -120,29 +97,11 @@ namespace Structures
                 {"Y", "TYR"},
                 {"V", "VAL"}
             };
-        }
     }
   
     public class VDWRadii
     {
-        /*
-        public const float H  = 1.200f;
-        public const float C  = 1.700f;
-        public const float N  = 1.550f;
-        public const float O  = 1.520f;
-        public const float F  = 1.470f;
-        public const float CL = 1.750f;
-        public const float BR = 1.850f;
-        public const float I  = 1.980f;
-        public const float P  = 1.800f;
-        public const float S  = 1.800f;
-        */
-
-        public static Dictionary<string, float> vdwRadii;
-
-        public VDWRadii()
-        {
-            vdwRadii = new Dictionary<string, float>
+        public static Dictionary<string, float> vdwRadii = new Dictionary<string, float>
             {
                 { "H", (float)1.200 },
                 { "C", (float)1.700 },
@@ -155,29 +114,11 @@ namespace Structures
                 { "P", (float)1.800 },
                 { "S", (float)1.800 }
             };
-        }
     }
 
     public class AtomColours
-    {
-        /*
-        public static Color H  = Color.white;
-        public static Color C  = Color.black;
-        public static Color N  = Color.blue;
-        public static Color O  = Color.red;
-        public static Color F  = Color.green;
-        public static Color CL = Color.green;
-        public static Color BR = new Color(139, 0, 0);
-        public static Color I  = new Color(148, 0, 221);
-        public static Color P  = new Color(255, 165, 0);
-        public static Color S  = Color.yellow;
-        */
-        
-        public static Dictionary<string, Color> atomColours;
-
-        public AtomColours()
-        {
-            atomColours = new Dictionary<string, Color>
+    {        
+        public static Dictionary<string, Color> atomColours = new Dictionary<string, Color>
             {
                 { "H", Color.white },
                 { "C", Color.black },
@@ -185,15 +126,25 @@ namespace Structures
                 { "O", Color.red },
                 { "F", Color.green },
                 { "CL", Color.green },
-                { "BR", new Color(139, 0, 0) },
-                { "I", new Color(148, 0, 211) },
-                { "P", new Color(255, 165, 0) },
+                { "BR", new Color(0.54f, 0, 0, 1) },
+                { "I", new Color(0.58f, 0, 0.83f, 1) },
+                { "P", new Color(1, 0.65f, 0, 1) },
                 { "S", Color.yellow }
             };
-        }
+        
     }
 
     //  PROTEIN DATA STRUCTURES  //
+
+    //
+    // The idea is to create structure classes that build into each other
+    //
+    //  |----> Model (one or more chains)
+    //  |---------> Chain (one or more secondary structures)
+    //  |--------------> Residue (various nb of atoms for each amino acid)
+    //  |-------------------> Atom
+    //
+    //
 
     // A protein's chain, essentially a list of residues
     public class Chain
@@ -370,27 +321,21 @@ namespace Structures
  
         // representation parameters
         public RepresentationType repType;
+        public ColourScheme colScheme;
 
         // representation variables
         public bool IsDisplayed { get; set; }
 
         // constructor
-        public Representation(List<List<int>> indices, RepresentationType n_rep, bool display)
+        public Representation(List<List<int>> indices, RepresentationType n_rep, ColourScheme n_scheme, bool display)
         {
             // to display new representation upon creation
             residueIndices = indices;
             repType = n_rep;
+            colScheme = n_scheme;
             IsDisplayed = display;
         }
         
-        // default to Van Der Walls if no parameters provided
-        public Representation(List<List<int>> indices)
-        {
-            residueIndices = indices;
-            repType = RepresentationType.VanDerWalls;
-            IsDisplayed = true;
-        }
-
         // methods
 
         // create custom tostring method that shows the rep type and colour scheme

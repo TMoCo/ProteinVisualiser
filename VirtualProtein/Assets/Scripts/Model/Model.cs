@@ -14,10 +14,11 @@ public class Model : MonoBehaviour
     //      FIELDS      //
     //                  //
 
-    // fields for comunication wuth UI
+    // file paths
     public static string PdbPath { get; set; }
     public static string DsspPath { get; set; }
 
+    // fields for comunication wuth UI
     public static bool showModel = false;
     public static bool newModel = false;
     public static bool newRep = false;
@@ -27,7 +28,7 @@ public class Model : MonoBehaviour
     public static bool hasDssp = false;
 
     // reference to the game object with the scripts that display the model's info and interact with player
-    public GameObject UI;
+    //public GameObject UI;
 
     // references to the game object models that are used by the representationsn 
     public GameObject AtomSphere;
@@ -65,9 +66,9 @@ public class Model : MonoBehaviour
     private void Update()
     {
         
-        if (!showModel == false)
+        if (showModel)
         {
-            if (newModel == true)
+            if (newModel)
             {
                 // destroy the previous model if it exists
                 if (chains.Any())
@@ -92,11 +93,31 @@ public class Model : MonoBehaviour
                     
                 // intitialse representations
                 representations.Clear();
-                
+
+                ResetTransform();
+
+                List<List<int>> initSelection = new List<List<int>>();
+                foreach(Chain chain in chains)
+                {
+                    List<int> residueIndices = new List<int>();
+                    int index = 0;
+                    foreach(Residue residue in chain.chainResidues)
+                    {
+                        residueIndices.Add(index);
+                        index += 1;
+                    }
+                    initSelection.Add(residueIndices);
+                }
+
+                representations.Add(new Representation(initSelection, RepresentationType.BallAndStick, ColourScheme.AtomType, true));
+
+                InstantiateRepresentation(representations.First());
+                CenterRepresentation(representations.Count - 1);
+
                 newModel = false;
             }
 
-            if (hasDssp == true)
+            if (hasDssp)
             {
                 GetDsspData(DsspPath);
                 hasDssp = false;
@@ -144,17 +165,7 @@ public class Model : MonoBehaviour
 
             if (ShowHideUI.showUI)
             {
-                float horizontal = Input.GetAxis("Horizontal");
-                float vertical = Input.GetAxis("Vertical");
-
-                Vector3 movement = playerPosition.right * horizontal + playerPosition.forward * vertical;
-
-                if (Input.GetKey(KeyCode.LeftShift))
-                {
-                    movement = playerPosition.up * vertical;
-                }
-
-                transform.Translate(movement * speed * Time.deltaTime, Space.World);
+                TranslateModel();
                 
                 if (Input.GetMouseButton(0))
                 {
@@ -308,7 +319,7 @@ public class Model : MonoBehaviour
     // Gets the representation data from UI
     public Representation GetRepresentation()
     {
-        return new Representation(SelectionHandler.selectedResidues, (RepresentationType)CreateRepresentation.SelectedRepType, true);
+        return new Representation(SelectionHandler.selectedResidues, (RepresentationType)CreateRepresentation.SelectedRepType, (ColourScheme)CreateRepresentation.SelectedColourScheme , true);
     }
 
     // set the representation's gameobjects to inactive
@@ -364,6 +375,35 @@ public class Model : MonoBehaviour
                         break;
                     case RepresentationType.Cartoon:
                         InstantiateCartoon(chains[i], representation.residueIndices[i]);
+                        break;
+                }
+
+                switch (representation.colScheme)
+                {
+                    // the default, do nothing
+                    case ColourScheme.AtomType:
+                        break;
+                    case ColourScheme.ResidueType:
+                        foreach (Residue residue in chains[i].chainResidues)
+                        {
+                            Color goColour = ResidueColours.aminoColours[residue.ResidueName];
+                            foreach(GameObject resGo in residue.residueGameObjects[representations.Count - 1])
+                            {
+                                resGo.GetComponent<Renderer>().material.SetColor("_Color", goColour);
+                            }
+                        }
+                        break;
+                    case ColourScheme.StructureType:
+                        foreach (Residue residue in chains[i].chainResidues)
+                        {
+                            Color goColour = StructureColours.structureColours[residue.ResStructureInf];
+                            foreach (GameObject resGo in residue.residueGameObjects[representations.Count - 1])
+                            {
+                                resGo.GetComponent<Renderer>().material.SetColor("_Color", goColour);
+                            }
+                        }
+                        break;
+                    case ColourScheme.Arbitrary:
                         break;
                 }
             }
@@ -537,6 +577,7 @@ public class Model : MonoBehaviour
                     GameObject n_tube = Instantiate(AtomBond, segmentPosition, Quaternion.identity, transform);
                     n_tube.transform.LookAt(prevSegment);
                     n_tube.transform.localScale = new Vector3(10f, 10f, 15f);
+                    n_tube.GetComponent<Renderer>().material.color = Color.black;
                     prevSegment = n_tube.transform.position;
                     // NB There are as many curves as there are residues, so use i as the residue index!
                     newRepresentationObjects.Add(n_tube);
@@ -547,318 +588,6 @@ public class Model : MonoBehaviour
     }
 
     // Renders the given atoms as a CARTOON representation
-    private void RenderCartoon(List<Atom> chain)
-    {
-        if ((hasBackbone == false) || (hasSecStruct == false))
-        {
-            return;
-        }
-        // create list of structure (list of atoms that form secondary structure)
-        List<List<Atom>> structures = new List<List<Atom>>
-        {
-            new List<Atom>()
-        };
-
-        SecondaryStructure currentStructure = chain[0].SecStructInf;
-        int index = 0;
-
-        foreach(Atom atom in chain)
-        {
-            // ignore non backbone atoms
-            if (!atom.IsBackbone)
-            {
-                continue;
-            }
-
-            if (atom.SecStructInf == currentStructure)
-            {
-                structures[index].Add(atom);
-            }
-            else
-            {
-                structures.Add(new List<Atom> { atom });
-                currentStructure = atom.SecStructInf;
-                index += 1;
-            }
-        }
-
-
-        List<Vector3> prevCurve = new List<Vector3>
-        {
-            structures[0][0].Position,
-            structures[0][1].Position,
-            structures[0][2].Position
-        };
-
-        bool isFirst = true;
-
-
-        // render each secondary structure depending on type
-        foreach(List<Atom> list in structures)
-        {
-            Vector3 prevSeg = Vector3.zero;
-
-            switch (list[0].SecStructInf)
-            {
-
-
-                case SecondaryStructure.Other:
-
-                    List<List<Vector3>> curves = GetCurves(list);
-
-                    if (prevSeg.Equals(Vector3.zero))
-                    {
-                        prevSeg = curves[0][0];
-                    }
-
-                    Vector3 prevSegTube = curves[0][0];
-
-                    if (isFirst)
-                    {
-                        for (int j = 0; j < steps; j++)
-                        {
-                            Vector3 segmentPos = Bezier.GetPointQuad(curves[0][0], curves[0][1], curves[0][2], j / (float)steps);
-                            GameObject n_Tube = Instantiate(AtomBond, segmentPos , Quaternion.identity);
-                            n_Tube.transform.parent = transform;
-                            n_Tube.transform.LookAt(prevSegTube);
-                            if (j == 0)
-                            {
-                                n_Tube.transform.LookAt(prevSeg);
-                            }
-                            n_Tube.transform.localScale = new Vector3(10f, 10f, 15f);
-                            //n_Helix.transform.Rotate(Vector3.up, 90f);
-                            prevSegTube = n_Tube.transform.position;
-                        }
-                        isFirst = false;
-                    }
-                    else
-                    {
-                        for (int j = 0; j < steps; j++)
-                        {
-                            Vector3 segmentPos = Bezier.GetPointCube(prevCurve[2], prevCurve[2] + (prevCurve[2] - prevCurve[1]), curves[0][1], curves[0][2], j / (float)steps);
-                            GameObject n_Tube = Instantiate(AtomBond, segmentPos, Quaternion.identity);
-                            n_Tube.transform.parent = transform;
-                            n_Tube.transform.LookAt(prevSegTube);
-                            n_Tube.transform.localScale = new Vector3(10f, 10f, 15f);
-                            //n_Helix.transform.Rotate(Vector3.up, 90f);
-                            prevSegTube = n_Tube.transform.position;
-                        }
-                    }
-
-
-                    if (curves.Count > 1)
-                    {
-                        for (int i = 1; i < curves.Count; i++)
-                        {
-                            for (int j = 0; j < steps; j++)
-                            {
-                                Vector3 segmentPos = Bezier.GetPointCube(curves[i - 1][2], curves[i - 1][2] + (curves[i - 1][2] - curves[i - 1][1]), curves[i][1], curves[i][2], j / (float)steps);
-                                GameObject n_Tube = Instantiate(AtomBond, segmentPos, Quaternion.identity);
-                                n_Tube.transform.parent = transform;
-                                n_Tube.transform.LookAt(prevSegTube);
-                                n_Tube.transform.localScale = new Vector3(10f, 10f, 15f);
-                                //n_Helix.transform.Rotate(Vector3.up, 90f);
-                                prevSegTube = n_Tube.transform.position;
-                            }
-                        }
-                    }
-                    prevCurve = curves.Last();
-                    break;
-
-
-
-                case SecondaryStructure.AlphaHelix:
-
-                    // initialise curves list
-                    List<List<Vector3>> curvesAlpha = GetCurves(list);
-
-                    // why this?
-                    if (curvesAlpha.Count == 1)
-                    {
-                        break;
-                    }
-
-                    // axis vector of helix 
-                    Vector3 helixAxis = list.Last().Position - list.First().Position;
-                    // plane to compute origin of axis 
-                    Plane helixPlane = new Plane(helixAxis.normalized, list.First().Position);
-
-                    // FOR DEBUG, COMMENT OUT
-                    /*
-                    GameObject helixPlaneObj = GameObject.CreatePrimitive(PrimitiveType.Plane);
-                    helixPlaneObj.transform.position = list.First().Position - center;
-                    helixPlaneObj.transform.LookAt(list.Last().Position - center);
-                    helixPlaneObj.transform.Rotate(Vector3.right, 90f);
-                    helixPlaneObj.transform.parent = transform;
-                     */
-
-                    List<Vector3> projections = new List<Vector3>();
-
-                    // get all the projected position of atoms on helix plane 
-                    foreach (Atom atom in list)
-                    {
-                        projections.Add(helixPlane.ClosestPointOnPlane(atom.Position));
-                    }
-
-                    // FOR DEBUG, COMMENT OUT
-                    /*
-                    foreach (Vector3 point in projections)
-                    {
-                        GameObject projObj = Instantiate(AtomSphere, point - center, Quaternion.identity);
-                        projObj.transform.localScale = new Vector3(10f, 10f, 10f);
-                        projObj.transform.parent = transform;
-                        projObj.GetComponent<Renderer>().material.color = Color.yellow;
-                    }
-                     */
-
-                    // avergae mid point of all projected points is new axis origin
-                    Vector3 avg = Vector3.zero;
-                    foreach (Vector3 point in projections)
-                    {
-                        avg += point;
-                    }
-
-                    // FOR DEBUG, COMMENT OUT
-                    /*
-                    GameObject projAvg = Instantiate(AtomSphere, avg / projections.Count - center, Quaternion.identity);
-                    projAvg.transform.parent = transform;
-                    projAvg.transform.localScale = new Vector3(30f, 30f, 30f);
-                    projAvg.transform.LookAt(helixAxis + avg/projections.Count - center);
-                    projAvg.GetComponent<Renderer>().material.color = Color.blue;
-                    for (int i = 1; i < 10; i++)
-                    {
-                        GameObject axis = Instantiate(AtomBond, avg / projections.Count + (i * helixAxis / 10) - center, Quaternion.identity);
-                        axis.transform.parent = transform;
-                        axis.transform.LookAt(avg / projections.Count - center);
-                        axis.GetComponent<Renderer>().material.color = Color.blue;
-                        axis.transform.localScale = new Vector3(10f, 10f, 80f);
-                    }
-
-                     */
-                    // draw the first residue only containing three atoms
-                    GameObject axisOrigin = Instantiate(AtomSphere, avg / projections.Count, Quaternion.identity);
-                    axisOrigin.transform.LookAt(avg / projections.Count - helixAxis );
-                    axisOrigin.transform.rotation *= Quaternion.Euler(-90, 0, 0);
-                    Quaternion rotation = axisOrigin.transform.rotation;
-
-                    if (prevSeg.Equals(Vector3.zero))
-                    {
-                        prevSeg = curvesAlpha[0][0];
-                    }
-
-                    Vector3 prevSegAlpha = curvesAlpha[0][0];
-
-                    if (isFirst)
-                    {
-                        for (int j = 0; j < steps; j++)
-                        {
-                            Vector3 segmentPos = Bezier.GetPointQuad(curvesAlpha[0][0], curvesAlpha[0][1], curvesAlpha[0][2], j / (float)steps);
-                            GameObject n_Helix = Instantiate(HelixSide, segmentPos , rotation, transform);
-                            n_Helix.transform.parent = transform;
-                            prevSegAlpha = n_Helix.transform.position;
-                        }
-                    }
-                    else
-                    {
-                        for (int j = 0; j < steps; j++)
-                        {
-                            Vector3 segmentPos = Bezier.GetPointCube(prevCurve[2], prevCurve[2] +
-                                (prevCurve[2] - prevCurve[1]), curvesAlpha[0][1], curvesAlpha[0][2], j / (float)steps);
-                            GameObject n_Helix = Instantiate(HelixSide, segmentPos , rotation);
-                            n_Helix.transform.parent = transform;
-                            prevSegAlpha = n_Helix.transform.position;
-                        }
-                    }
-
-                    if (curvesAlpha.Count > 1)
-                    {
-                        for (int i = 1; i < curvesAlpha.Count; i++)
-                        {
-                            for (int j = 0; j < steps; j++)
-                            {
-                                Vector3 segmentPos = Bezier.GetPointCube(curvesAlpha[i - 1][2], curvesAlpha[i - 1][2] +
-                                    (curvesAlpha[i - 1][2] - curvesAlpha[i - 1][1]), curvesAlpha[i][1], curvesAlpha[i][2], j / (float)steps);
-                                GameObject n_Helix = Instantiate(HelixSide, segmentPos , rotation);
-                                n_Helix.transform.parent = transform;
-                                prevSegAlpha = n_Helix.transform.position;
-                            }
-                        }
-                    }
-
-                    Destroy(axisOrigin);
-                    prevCurve = curvesAlpha.Last();
-                    break;
-
-
-
-                case SecondaryStructure.BetaSheet:
-
-                    int currentResidueBeta = list[0].ResSeqNum;
-                    index = 0;
-
-                    List<List<Vector3>> curvesBeta = GetCurves(list);
-
-                    if (curvesBeta.Count == 1)
-                    {
-                        break;
-                   }
-
-                    if (prevSeg.Equals(Vector3.zero))
-                    {
-                        prevSeg = curvesBeta[0][0];
-                    }
-
-                    // draw the first residue only containing three atoms
-                    Vector3 prevSegBeta = curvesBeta[0][0];
-
-                    if (isFirst)
-                    {
-                        for (int j = 0; j < steps; j++)
-                        {
-                            Vector3 segmentPos = Bezier.GetPointQuad(curvesBeta[0][0], curvesBeta[0][1], curvesBeta[0][2], j / (float)steps);
-                            GameObject n_Sheet = Instantiate(SheetSide, segmentPos , Quaternion.identity);
-                            n_Sheet.transform.parent = transform;
-                            n_Sheet.transform.LookAt(prevSegBeta);
-                            prevSegBeta = n_Sheet.transform.position;
-                        }
-
-                    }
-                    else
-                    {
-                        for (int j = 0; j < steps; j++)
-                        {
-                            Vector3 segmentPos = Bezier.GetPointCube(prevCurve[2], prevCurve[2] + (prevCurve[2] - prevCurve[1]), curvesBeta[0][1], curvesBeta[0][2], j / (float)steps);
-                            GameObject n_Sheet = Instantiate(SheetSide, segmentPos , Quaternion.identity);
-                            n_Sheet.transform.parent = transform;
-                            n_Sheet.transform.LookAt(prevSegBeta);
-                            prevSegBeta = n_Sheet.transform.position;
-                        }
-
-
-                    }
-
-                    for (int i = 1; i < curvesBeta.Count; i++)
-                    {
-                        for (int j = 0; j < steps; j++)
-                        {
-                            Vector3 segmentPos = Bezier.GetPointCube(curvesBeta[i-1][2], curvesBeta[i-1][2] +
-                                (curvesBeta[i-1][2] - curvesBeta[i-1][1]), curvesBeta[i][1], curvesBeta[i][2], j / (float)steps);
-                            
-                            GameObject n_Sheet = Instantiate(SheetSide, segmentPos , Quaternion.identity);
-                            n_Sheet.transform.parent = transform;
-                            n_Sheet.transform.LookAt(prevSegBeta);
-                            prevSegBeta = n_Sheet.transform.position;
-
-                        }
-                    }
-
-                    prevCurve = curvesBeta.Last();
-                    break;
-
-            }
-        }
-    }
-
     private void InstantiateCartoon(Chain chain, List<int> selectedResidues)
     {
         // convert chain into curves
@@ -866,21 +595,82 @@ public class Model : MonoBehaviour
         
         // iterate over the curves, ignoring those that refer to unselected residues
         Vector3 prevSegment = curves[0][0];
+        Quaternion prevRotation = Quaternion.identity;
+
         for (int i = 0; i < curves.Count; i++)
         {
+
             List<GameObject> newRepresentationObjects = new List<GameObject>();
             if (selectedResidues.Contains(i))
             {
                 switch (chain.chainResidues[i].ResStructureInf)
                 {
                     case SecondaryStructure.AlphaHelix:
-                    // get the axis of the current residue and create a plane with axis as normal
-                    Vector3 axis = curves[i][2] - curves[i][0];
-                    Plane axisPlane = new Plane(axis.normalized, curves[i][0]);
-                    // We need to place the axis at the average point of the curve's atoms projections onto the plane
-                    Vector3 avgPoint = (axisPlane.ClosestPointOnPlane(curves[i][0]) + axisPlane.ClosestPointOnPlane(curves[i][1]) + axisPlane.ClosestPointOnPlane(curves[i][2])) / 3 ;
-                    
-                    break;
+
+                        // get the axis of the current residue and create a plane with axis as normal
+                        Plane axisPlane = new Plane(curves[i][2].normalized - curves[i][0].normalized, curves[i][0]);
+                        // We need to place the axis at the average point of the curve's atoms projections onto the plane
+                        Vector3 avgPoint = (axisPlane.ClosestPointOnPlane(curves[i][0]) + axisPlane.ClosestPointOnPlane(curves[i][1]) + axisPlane.ClosestPointOnPlane(curves[i][2])) / 3;
+                        // Look at the end of the axis will point the z direction, so rotate by -90 x to have the y pointing instead
+                        Quaternion segRotation = Quaternion.LookRotation(curves[i][2] - avgPoint, Vector3.up);// * Quaternion.Euler(-30, 0, 0);
+
+                        /*
+                        GameObject helixPlaneObj = GameObject.CreatePrimitive(PrimitiveType.Plane);
+                        helixPlaneObj.transform.localScale = Vector3.one / 4f;
+                        helixPlaneObj.transform.position = avgPoint;
+                        helixPlaneObj.transform.LookAt(curves[i][2]);
+                        helixPlaneObj.transform.Rotate(Vector3.right, 90f);
+                        helixPlaneObj.transform.parent = transform;
+                        GameObject axisOrigin = Instantiate(AtomSphere, avgPoint, Quaternion.identity, transform);
+                        axisOrigin.transform.parent = transform;
+                        axisOrigin.transform.LookAt(curves[i][2]);
+                        axisOrigin.GetComponent<Renderer>().material.color = Color.blue;
+                        axisOrigin.transform.localScale = new Vector3(40f, 40f, 40f);
+                        newRepresentationObjects.Add(axisOrigin);
+                        for (int k = 0; k < 5; k++)
+                        {
+                            GameObject axisObj = Instantiate(AtomBond, curves[i][0] + (k * (curves[i][2] - curves[i][0]) / 5) , Quaternion.identity);
+                            axisObj.transform.parent = transform;
+                            axisObj.transform.LookAt(curves[i][2]);
+                            axisObj.GetComponent<Renderer>().material.color = Color.blue;
+                            if (k==5)
+                            {
+                                axisObj.GetComponent<Renderer>().material.color = Color.red;
+                            }
+                            newRepresentationObjects.Add(axisObj);
+                        }
+                         */
+
+                        for (int j = 0; j < steps; j++)
+                        {
+
+                            Vector3 segmentPosition;
+                            if (i == 0)
+                            {
+                                segmentPosition = Bezier.GetPointQuad(curves[0][0], curves[0][1], curves[0][2], j / (float)steps);
+                            }
+                            else
+                            {
+                                segmentPosition = Bezier.GetPointCube(curves[i - 1][2], curves[i - 1][2] + (curves[i - 1][2] - curves[i - 1][1]), curves[i][1], curves[i][2], j / (float)steps);
+                            }
+                            
+
+                            GameObject n_helix;
+                            if ((i == 0 ) || (chain.chainResidues[i-1].ResStructureInf != SecondaryStructure.AlphaHelix))
+                            {
+                                n_helix = Instantiate(SheetSide, segmentPosition, segRotation, transform);
+                            }
+                            else
+                            {
+                                n_helix = Instantiate(SheetSide, segmentPosition, Quaternion.Lerp(prevRotation, segRotation, 1.5f * j / (float)steps), transform);
+                            }
+                            n_helix.GetComponent<Renderer>().material.color = Color.black;
+                            prevSegment = n_helix.transform.position;
+                            // NB There are as many curves as there are residues, so use i as the residue index!
+                            newRepresentationObjects.Add(n_helix);
+                        }
+                        prevRotation = segRotation;
+                        break;
 
                     case SecondaryStructure.BetaSheet:
                     // render a sheet (tube with sheet gameobjects instead of cylindres)
@@ -898,6 +688,7 @@ public class Model : MonoBehaviour
                         }
 
                         GameObject n_sheet = Instantiate(SheetSide, segmentPosition, Quaternion.identity, transform);
+                        n_sheet.GetComponent<Renderer>().material.color = Color.black;
                         n_sheet.transform.LookAt(prevSegment);
                         prevSegment = n_sheet.transform.position;
                         // NB There are as many curves as there are residues, so use i as the residue index!
@@ -909,7 +700,6 @@ public class Model : MonoBehaviour
                     // render a tube
                     for (int j = 0; j < steps; j++)
                     {
-
                         Vector3 segmentPosition;
                         if (i == 0)
                         {
@@ -919,8 +709,8 @@ public class Model : MonoBehaviour
                         {
                             segmentPosition = Bezier.GetPointCube(curves[i - 1][2], curves[i - 1][2] + (curves[i - 1][2] - curves[i - 1][1]), curves[i][1], curves[i][2], j / (float)steps);
                         }
-
                         GameObject n_tube = Instantiate(AtomBond, segmentPosition, Quaternion.identity, transform);
+                        n_tube.GetComponent<Renderer>().material.color = Color.black;
                         n_tube.transform.LookAt(prevSegment);
                         n_tube.transform.localScale = new Vector3(10f, 10f, 15f);
                         prevSegment = n_tube.transform.position;
@@ -1026,7 +816,7 @@ public class Model : MonoBehaviour
         else
         {
             transform.Rotate(Vector3.up, -Vector3.Dot(mousePosDelta, Camera.main.transform.right), Space.World);
-
+                
             transform.Rotate(Camera.main.transform.right, Vector3.Dot(mousePosDelta, Camera.main.transform.up), Space.World);
 
             // for rotation around the model's y axis, we need to check dot product of the model's y axis with world y axis
@@ -1061,5 +851,18 @@ public class Model : MonoBehaviour
         {
             transform.localScale = Vector3.Max(modelScale / Mathf.Max(Math.Abs(Vector3.Dot(mousePosDelta, Camera.main.transform.up) * 0.5f), 1), minScale);
         }
+    }
+
+    // Use keyboard input to move the model around world space
+    void TranslateModel()
+    {
+        Vector3 movement = playerPosition.right * Input.GetAxis("Horizontal") + playerPosition.forward * Input.GetAxis("Vertical");
+
+        if (Input.GetKey(KeyCode.LeftShift))
+        {
+            movement = playerPosition.up * Input.GetAxis("Vertical");
+        }
+
+        transform.Translate(movement * speed * Time.deltaTime, Space.World);
     }
 }

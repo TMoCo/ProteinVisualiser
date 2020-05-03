@@ -12,111 +12,8 @@ public class FileParser
 {
 
     public static bool DSSPstatus = false;
-
-    // dictionary containing the VDw radius and colours of each element
-    readonly VDWRadii radii = new VDWRadii();
-    readonly AtomColours colours = new AtomColours();
-   
-
-    // parses a PDB file
-    /*
-    public List<List<Atom>> ParsePDB(string path)
-    {
-        List<List<Atom>> chains = new List<List<Atom>>();
-
-        List<Chain> chainsList = new List<Chain>();
-
-        try
-        {            
-            using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read))
-            {
-                using (StreamReader input = new StreamReader(file))
-                {
-
-                    // Regular expression to catch either an ATOM or TER in the .pdb file format using capture groups to separate information
-
-                    Regex pdbRegex = new Regex(@"^ATOM\s+(?<atom_serial>\d+)\s+(?<atom_name>[\w\W]{0,4})\s+"+
-                        @"(?<residue_name>\w+)\s(?<chain_id>\w?)\s+(?<res_seq_nb>\d+)\s*"+
-                        @"(?<x_pos>\W?\d+.\d{3})\s*(?<y_pos>\W?\d+.\d{3})\s*(?<z_pos>\W?\d+.\d{3})\s*"+
-                        @"(?<occupancy>\d.\d{2})\s*(?<temp_factor>\d+.\d{2})[\s\S\w\W]{0,10}(?<element>[\w\s]{0,2})\s*"+
-                        @"|^(?<ter_entry>TER)\s*(?<ter_serial>\d+)\s*(?<ter_res>\w+)\s*(?<ter_chain>\w+)\s*(?<ter_res_seq_num>\d+)");
-
-                    int chainIndex = -1;
-                    bool newChain = true;
-
-                    while (!input.EndOfStream)
-                    {
-                        string line = input.ReadLine();
-                        Match match = pdbRegex.Match(line);
-
-                        // found a new atom
-                        if (match.Success)
-                        {
-                            
-                            GroupCollection groups = match.Groups;
-
-                            // initialise new list in case of new chain
-                            if(newChain)
-                            {
-                                newChain = false;
-                                chains.Add(new List<Atom>());
-                                chainIndex += 1;
-                            }
-
-                            if (Equals(groups[12].ToString(), "TER"))
-                            {
-                                newChain = true;
-                                continue;
-                            }
-
-                            Atom n_atom = new Atom();
-
-                            // Set the fields obtained from file
-                            SetFieldsPDB(groups, n_atom);
-
-                            // if no element given, deduce from atom name
-                            if (string.IsNullOrEmpty(n_atom.Element))
-                            {
-                                n_atom.Element = GetElementFromName(n_atom).Replace(" ", String.Empty);
-                            }
-                            else
-                            {
-                                // if element provided, could contain artifact whitespace
-                                n_atom.Element = n_atom.Element.Replace(" ", string.Empty);
-                            }
-
-                            // set the atom's radius
-                            try
-                            {
-                                n_atom.VDWRadius = radii.vdwRadii[n_atom.Element.Replace(" ", String.Empty)];
-                                n_atom.Colour = colours.atomColours[n_atom.Element.Replace(" ", String.Empty)];
-                            }
-                            catch (System.SystemException)
-                            {
-                                n_atom.VDWRadius = (float)1.0;
-                                n_atom.Colour = Color.black;
-                            }
-
-                            chains[chainIndex].Add(n_atom);
-                        }
-                    }
-                }
-            }        
-            foreach(List<Atom> chain in chains)
-            {
-                FindNeighbours(chain);
-                chainsList.Add(new Chain(GetChainResidues(chain)));
-            }
-            return chains;
-                
-        }
-        catch (System.IO.IOException)
-        {
-            return chains;
-        }
-    }
-     */
-
+    
+    // function to parse pdb files to return the chains that form a protein
     public static List<Chain> ParsePDB(string path)
     {
         List<List<Atom>> chains = new List<List<Atom>>();
@@ -124,9 +21,6 @@ public class FileParser
 
         try
         {
-
-            VDWRadii radii = new VDWRadii();
-            AtomColours colours = new AtomColours();
 
             using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read))
             {
@@ -321,6 +215,7 @@ public class FileParser
         }
     }
 
+    // utility function that sets the field of an atom object to the data collected from a pdb ATOM entry
     private static void SetFieldsPDB(GroupCollection groups, Atom atom)
     {
         atom.AtomSerial = Int32.Parse(groups[1].ToString());
@@ -544,6 +439,7 @@ public class FileParser
         return backbone;
 
     }
+
     // swap two objects in a list
     public static void Swap<T>(IList<T> list, int indexA, int indexB)
     {

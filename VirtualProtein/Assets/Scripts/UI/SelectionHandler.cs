@@ -1,6 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using System;
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -55,10 +55,11 @@ public class SelectionHandler : MonoBehaviour
         {
             if (chainList.Any())
             {
+                Debug.Log(selectedResidues.IndexOf(chainList));
                 selectionText.text += "CHAIN " + Model.chains[selectedResidues.IndexOf(chainList)].ChainId + '\n';
                 foreach(int index in chainList)
                 {
-                    selectionText.text += '\t' + Model.chains[selectedResidues.IndexOf(chainList)].chainResidues[index].ResidueToString() + '\n';
+                   selectionText.text += '\t' + Model.chains[selectedResidues.IndexOf(chainList)].chainResidues[index].ResidueToString() + '\n';
                 }
             }
         }
@@ -79,6 +80,23 @@ public class SelectionHandler : MonoBehaviour
                     index += 1;
                 }
                 selectedResidues.Add(residuesInChain);
+            }
+            hasAdded = true;
+        }
+    }
+
+    public void SelectWholeChain()
+    {
+        int chainIndex = ResiduesDropdown.selectedChainIndex;
+            Debug.Log(chainIndex);
+        if (modelLoaded && chainIndex > -1)
+        {
+            selectedResidues[chainIndex].Clear();
+            int residueIndex = 0;
+            foreach(Residue residue in Model.chains[chainIndex].chainResidues)
+            {
+                selectedResidues[chainIndex].Add(residueIndex);
+                residueIndex += 1;
             }
             hasAdded = true;
         }
